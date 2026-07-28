@@ -2,14 +2,14 @@
 
 Librería para cliente MQTT legacy síncrono.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `MQTTService`
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 var mqtt = new MQTTService("localhost");

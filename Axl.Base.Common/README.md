@@ -2,12 +2,12 @@
 
 Librería base (SDK-style) que contiene los modelos, interfaces y utilidades estáticas compartidas por todo el ecosistema.
 
-## Prerrequisitos
+## Prerequisites
 - **Frameworks compatibles:** .NET 4.0, .NET 4.5.
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
-### Modelos Principales
+### Models Principales
 
 #### `Result<T>`
 Encapsula una respuesta de operación, incluyendo el valor de retorno o una lista de errores.

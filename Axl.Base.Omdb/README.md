@@ -2,12 +2,12 @@
 
 Librería para la integración con la base de datos OM (Operational Management) de Foxboro mediante comandos de consola.
 
-## Prerrequisitos
+## Prerequisites
 - **Foxboro Tools:** Debe estar instalado el conjunto de herramientas de Foxboro (ej. `omgetimp`, `omsetimp`, `omcrt`, `omfnd`).
 - **Shell:** Requiere `ksh.exe` disponible en el sistema.
 - **Ruta por defecto:** `d:\opt\fox\bin\tools`.
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `OmdbService`
 

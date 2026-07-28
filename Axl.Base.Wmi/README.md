@@ -2,14 +2,14 @@
 
 Librería de manipulación WMI pre-empaquetada para extracción de métricas de Windows.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `WmiService`
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 var wmi = new WmiService();
@@ -42,7 +42,7 @@ Realiza consultas WQL a un host local o remoto.
   - `port`: (Opcional) Puerto de conexión personalizado. Si es `0` o no es un puerto TCP válido (1-65535), se utiliza el comportamiento por defecto de WMI/DCOM.
 - **Retorno:** `List<Dictionary<string, string>>`. Cada diccionario representa una instancia encontrada, con los mapeos definidos en `wma`.
 
-### Modelo `WmiQuery`
+### Model `WmiQuery`
 - **Propiedades:**
   - `NMspace`: Namespace de WMI (ej. `root\cimv2`).
   - `CLspace`: Clase WMI (ej. `Win32_Processor`).

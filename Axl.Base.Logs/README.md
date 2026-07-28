@@ -2,10 +2,10 @@
 
 Librería base para servicios de registro (Logging).
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 Implementa la interfaz `ILog`. Dependiendo de la implementación utilizada (`FileLog`, `ScreenLog`), el destino de la traza variará.
 

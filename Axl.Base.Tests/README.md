@@ -2,7 +2,7 @@
 
 Proyecto centralizado de pruebas unitarias y de integración para todo el ecosistema.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.7.2 (Para compatibilidad con todos los módulos).
 
 ## Dependencias de NuGet

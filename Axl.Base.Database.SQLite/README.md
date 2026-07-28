@@ -2,20 +2,20 @@
 
 Implementación del cliente para SQLite v3 orientada a persistencia local de configuraciones y variables de forma segura (encriptada).
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
 ## Dependencias de NuGet
 - `System.Data.SQLite.Core` (v1.0.119)
 - `Newtonsoft.Json` (v13.0.4)
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `SQLiteService`
 
 Gestiona el almacenamiento de variables en una base de datos SQLite local (`settings.db`), utilizando encriptación AES-256 basada en el hardware de la máquina.
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 // Se inicializa con la ruta donde se guardará el settings.db
@@ -51,7 +51,7 @@ Guarda una colección completa de variables, sobrescribiendo el contenido actual
 
 ---
 
-### Modelo `VariableItem`
+### Model `VariableItem`
 
 Clase base para el manejo de pares clave-valor con soporte para notificación de cambios.
 

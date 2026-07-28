@@ -2,17 +2,17 @@
 
 Librería avanzada para cliente MQTT asíncrono basada en `MQTTnet`.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.5.2.
 
 ## Dependencias de NuGet
 - `MQTTnet` (v4.3.3.952)
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `MqttNetService`
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 var mqtt = new MqttNetService("broker.hivemq.com");

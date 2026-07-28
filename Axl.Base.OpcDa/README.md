@@ -2,15 +2,15 @@
 
 Librería para cliente OPC DA (Data Access) clásica.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0.
 - **Arquitectura:** Requiere **x86** (32 bits). El proceso que consuma esta librería debe ejecutarse en modo 32 bits debido a las dependencias COM (OpcRcw/DCOM). Si se ejecuta en x64, se obtendrán errores de "Intento de leer o escribir en la memoria protegida".
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `OpcDaService`
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 var opc = new OpcDaService();

@@ -2,14 +2,14 @@
 
 Librería para serialización JSON optimizada para compatibilidad.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `JsonService`
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 var legacyJson = new LegacyJson();

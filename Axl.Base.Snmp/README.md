@@ -2,13 +2,13 @@
 
 Librería de manipulación SNMP pre-empaquetada.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
 ## Dependencias de NuGet
 - `SnmpSharpNet` (v0.9.7)
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `SnmpService`
 

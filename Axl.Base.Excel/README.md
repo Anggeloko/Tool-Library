@@ -37,7 +37,7 @@ Genera un archivo Excel de prueba con múltiples tablas, celdas combinadas aleat
 
 ---
 
-### Modelos de Datos
+### Models de Datos
 
 - **`BaS` (Base Sheet)**: Contenedor raíz de una tabla extraída. Incluye el nombre de la tabla, índice de hoja y colecciones de columnas/valores.
 - **`BaC` (Base Column)**: Definición de columna con sistema de **Votación de Tipos**. Detecta automáticamente si una columna es predominantemente `string`, `double` o `datetime`.

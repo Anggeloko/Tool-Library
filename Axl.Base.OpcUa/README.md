@@ -2,14 +2,14 @@
 
 Librería para cliente OPC UA moderna y asíncrona.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.7.2.
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `OpcUaClient`
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 string endpoint = "opc.tcp://localhost:4840";

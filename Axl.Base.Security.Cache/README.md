@@ -8,24 +8,24 @@ Librería de caché en memoria temporizada y segura para objetos `SecretValue`. 
 > 
 > De esta forma, si se realiza un volcado de memoria (Memory Dump) del proceso, los secretos de la caché no son visibles. Solo se desencriptan en un búfer temporal efímero en el microsegundo exacto de la petición, el cual es inmediatamente rellenado con ceros (`Array.Clear`) tras envolverse en el `SecretValue`.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0 o superior.
-- **Dependencias:** `Axl.Base.Common` (para usar `SecretValue`).
+- **Dependencies:** `Axl.Base.Common` (para usar `SecretValue`).
 
 ---
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `SecretCache`
 Clase estática hilo-segura (`lock`) para almacenar y recuperar de forma controlada objetos `SecretValue`.
 
 #### `SecretValue GetOrAdd(string key, TimeSpan ttl, Func<SecretValue> retrieveFunc)`
 Recupera un secreto desde la memoria caché estática. Si el secreto no existe o ha expirado, invoca el delegado físico suministrado, inicializa y guarda una copia de la caché, y devuelve el valor.
-* **Parámetros:**
+* **Parameters:**
   - `key`: Identificador único del secreto en la caché (búsqueda case-insensitive).
   - `ttl`: Tiempo de vida en caché (*Time-To-Live*) antes de ser marcado como expirado y destruido.
   - `retrieveFunc`: Función delegada ejecutada solo si la caché requiere actualización física.
-* **Retorno:** Un objeto `SecretValue` independiente. El llamador es responsable de hacerle `Dispose()` cuando finalice su uso.
+* **Return:** Un objeto `SecretValue` independiente. El llamador es responsable de hacerle `Dispose()` cuando finalice su uso.
 
 #### `void Invalidate(string key)`
 Invalida y remueve inmediatamente un secreto específico de la caché en memoria, de forma que se destruye y sobrescribe con ceros su contenido.

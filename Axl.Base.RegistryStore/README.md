@@ -2,11 +2,11 @@
 
 Librería de almacenamiento seguro de secretos y contraseñas cifradas en el Registro de Windows usando DPAPI a nivel de máquina.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0 o superior.
-- **Dependencias:** `System.Security` para el cifrado por DPAPI (`ProtectedData`).
+- **Dependencies:** `System.Security` para el cifrado por DPAPI (`ProtectedData`).
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Interfaz `ISecretStore`
 Contrato estándar expuesto por `Axl.Base.Interfaces` para la inyección de dependencias y desacoplamiento del almacenamiento.
@@ -39,7 +39,7 @@ Clase envoltorio para datos sensibles que se asegura de sobrescribir los bytes i
 ### Clase `RegistryKeyStore`
 Implementa `ISecretStore` y maneja la escritura física en claves del Registro bajo `HKLM` (Registry 64-bit), además de gestionar automáticamente los permisos (ACLs) de lectura y escritura de Windows.
 
-#### Ejemplo de Uso (Instalador / Proceso Elevado)
+#### Usage Example (Instalador / Proceso Elevado)
 Cifra y guarda una clave de API, otorgando permisos de solo lectura para la cuenta de servicio local `.\MikeUser`.
 ```csharp
 using Axl.Base.Interfaces;
@@ -56,7 +56,7 @@ using (var secret = new SecretValue("SuperSecurePassword123!"))
 }
 ```
 
-#### Ejemplo de Uso (Servicio de Fondo / Proceso de lectura)
+#### Usage Example (Servicio de Fondo / Proceso de lectura)
 El servicio que se ejecuta bajo la cuenta `.\MikeUser` puede leer la clave sin necesidad de privilegios elevados de Administrador ni de conocer el secreto del cifrado:
 ```csharp
 ISecretStore store = new RegistryKeyStore(@"SOFTWARE\SchneiderElectric\ServiceManager");

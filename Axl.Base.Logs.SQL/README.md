@@ -2,16 +2,16 @@
 
 Extensión de logging para persistencia en base de datos.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.5.2.
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `SQLog`
 
 Implementa `ILog` y requiere una instancia de `ISql` para funcionar.
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 ISql db = new MSSQL("LogDB", "server", 1433, "Logs", "user", "pass");

@@ -2,14 +2,14 @@
 
 Utilidades para comprobación de conectividad mediante ICMP (Ping).
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 ### Clase `IcmpService`
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 var icmp = new IcmpService();

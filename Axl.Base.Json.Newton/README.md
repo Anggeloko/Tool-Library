@@ -2,19 +2,19 @@
 
 Implementación del servicio de serialización JSON utilizando la popular librería `Newtonsoft.Json`.
 
-## Prerrequisitos
+## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
 ## Dependencias de NuGet
 - `Newtonsoft.Json` (v13.0.3)
 
-## Referencia Técnica (API)
+## Technical Reference (API)
 
 Implementa la interfaz `IJson` de `Tools.Common`.
 
 ### Clase `JsonNewtonService`
 
-#### Ejemplo de Uso
+#### Usage Example
 
 ```csharp
 IJson json = new NewtonJson();
