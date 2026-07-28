@@ -1,54 +1,54 @@
 # Tools.Omdb
 
-Librería para la integración con la base de datos OM (Operational Management) de Foxboro mediante comandos de consola.
+Library for integration with Foxboro OM (Operational Management) database via console commands.
 
 ## Prerequisites
-- **Foxboro Tools:** Debe estar instalado el conjunto de herramientas de Foxboro (ej. `omgetimp`, `omsetimp`, `omcrt`, `omfnd`).
-- **Shell:** Requiere `ksh.exe` disponible en el sistema.
-- **Ruta por defecto:** `d:\opt\fox\bin\tools`.
+- **Foxboro Tools:** Foxboro toolset must be installed (e.g. `omgetimp`, `omsetimp`, `omcrt`, `omfnd`).
+- **Shell:** Requires `ksh.exe` available on the system.
+- **Default path:** `d:\opt\fox\bin\tools`.
 
 ## Technical Reference (API)
 
-### Clase `OmdbService`
+### Class `OmdbService`
 
 #### Constructor `OmdbService(string workingDirectory = DefaultFoxboroPath)`
-Inicializa el servicio verificando que la ruta de las herramientas exista.
-- **Parámetros:**
-  - `workingDirectory`: Ruta opcional a las herramientas. Si no se provee, usa la ruta estándar de Foxboro en el disco D.
+Initializes the service verifying that the toolset path exists.
+- **Parameters:**
+  - `workingDirectory`: Optional path to tools. If not provided, uses standard Foxboro path on drive D.
 
 #### `Write(string variable, object value, OmType type)`
-Escribe un valor en la base de datos. Si la variable no existe, la crea automáticamente con el tipo especificado.
-- **Tipos soportados (`OmType`):** `Bool`, `String`, `Float`, `Int`, `Long`.
+Writes a value to the database. If the variable does not exist, it creates it automatically with the specified type.
+- **Supported Types (`OmType`):** `Bool`, `String`, `Float`, `Int`, `Long`.
 
 #### `Read<T>(string variable, out bool exists)`
-Lee el valor de una variable.
-- **Retorno:** El valor convertido al tipo genérico `T`.
-- **Salida:** `exists` indica si la variable fue encontrada.
+Reads the value of a variable.
+- **Return:** The value converted to generic type `T`.
+- **Output:** `exists` indicates whether the variable was found.
 
 #### `ReadBit(string variable, int bit, out bool exists)`
-Lee un bit específico de una variable de tipo Packed Long (`pl`).
-- **Parámetros:**
-  - `variable`: Nombre de la variable PL.
-  - `bit`: Índice del bit (0-31).
+Reads a specific bit of a Packed Long (`pl`) variable.
+- **Parameters:**
+  - `variable`: PL variable name.
+  - `bit`: Bit index (0-31).
 
 #### `CreateRawVariables(string prefix, int quantity, OmType type)`
-Crea una secuencia de variables con formato `PREFIJO_001`, `PREFIJO_002`, etc.
+Creates a sequence of variables formatted as `PREFIX_001`, `PREFIX_002`, etc.
 
-## Ejemplo de Uso
+## Usage Example
 
 ```csharp
-var service = new OmdbService(); // Usa d:\opt\fox\bin\tools por defecto
+var service = new OmdbService(); // Uses d:\opt\fox\bin\tools by default
 
-// Escribir un booleano
+// Write a boolean
 service.Write("MI_VAR_BOOL", true, OmType.Bool);
 
-// Leer un float
+// Read a float
 float temp = service.Read<float>("TEMP_001", out bool exists);
 
 if (exists) {
-    Console.WriteLine($"Temperatura: {temp}");
+    Console.WriteLine($"Temperature: {temp}");
 }
 
 ---
-*Versión: 1.0.2*
+*Version: 1.0.2*
 ```

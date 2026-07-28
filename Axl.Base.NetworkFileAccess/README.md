@@ -1,83 +1,83 @@
 # Tools.NetworkFileAccess
 
-Librería para el acceso seguro a archivos y carpetas en red (UNC) utilizando suplantación de identidad (impersonation) de Windows. Permite realizar operaciones de sistema de archivos en recursos compartidos que requieren credenciales específicas.
+Library for secure access to network files and folders (UNC) using Windows user impersonation. Allows performing filesystem operations on shared network resources that require specific credentials.
 
-## Características
+## Features
 
-- **Suplantación de Identidad**: Ejecuta operaciones bajo el contexto de un usuario de red específico.
-- **Smart Copy/Move**: Gestiona automáticamente transferencias híbridas entre rutas de red y locales, utilizando un puente de memoria para evitar conflictos de permisos.
-- **Validación UNC**: Asegura que las rutas de red sigan el formato estándar `\\servidor\recurso`.
-- **Verificación de Salud**: Soporta `ICheckable` para validar la accesibilidad de un share de red.
-- **Compatibilidad**: Diseñada para .NET Framework 4.5.2+.
+- **User Impersonation**: Executes operations under the context of a specific network user.
+- **Smart Copy/Move**: Automatically manages hybrid transfers between network and local paths, using an in-memory bridge to prevent permission conflicts.
+- **UNC Validation**: Ensures network paths follow the standard `\\server\share` format.
+- **Health Check**: Implements `ICheckable` to validate network share accessibility.
+- **Compatibility**: Designed for .NET Framework 4.5.2+.
 
-## Uso Básico
+## Basic Usage
 
-### Inicialización
+### Initialization
 
-Para usar el servicio, primero debe crearse un `UserSecurityContext`.
+To use the service, a `UserSecurityContext` must first be created.
 
 ```csharp
 using Tools.Security;
 using Tools.NetworkFileAccess.Services;
 using Tools.Statics;
 
-// 1. Crear el contexto de seguridad
-var securePass = WindowsHelper.ToSecureString("mi_password");
-var context = new UserSecurityContext("usuario", securePass, LogonType.NewCredentials, "dominio");
+// 1. Create security context
+var securePass = WindowsHelper.ToSecureString("my_password");
+var context = new UserSecurityContext("username", securePass, LogonType.NewCredentials, "domain");
 
-// 2. Instanciar el servicio
+// 2. Instantiate service
 var networkService = new NetworkFileAccessService(context);
 ```
 
-### Operaciones de Archivo
+### File Operations
 
 ```csharp
-// Listar archivos
-string[] files = networkService.ListFiles(@"\\servidor\share\datos");
+// List files
+string[] files = networkService.ListFiles(@"\\server\share\data");
 
-// Escribir un archivo (crea directorios automáticamente si no existen)
-byte[] data = System.Text.Encoding.UTF8.GetBytes("Hola Red");
-networkService.WriteFile(@"\\servidor\share\logs\test.txt", data);
+// Write file (creates directories automatically if missing)
+byte[] data = System.Text.Encoding.UTF8.GetBytes("Hello Network");
+networkService.WriteFile(@"\\server\share\logs\test.txt", data);
 
-// Lectura
-byte[] readData = networkService.ReadFile(@"\\servidor\share\logs\test.txt");
+// Read file
+byte[] readData = networkService.ReadFile(@"\\server\share\logs\test.txt");
 ```
 
-### Smart Copy (Red <-> Local)
+### Smart Copy (Network <-> Local)
 
-La librería detecta si el origen o destino es local y maneja el cambio de contexto de seguridad automáticamente:
+The library detects whether the source or destination is local and manages security context switching automatically:
 
 ```csharp
-// De Red a Local (Copia segura)
-networkService.Copy(@"\\servidor\share\config.ini", @"C:\AppData\config.ini");
+// Network to Local (Secure copy)
+networkService.Copy(@"\\server\share\config.ini", @"C:\AppData\config.ini");
 
-// De Local a Red
-networkService.Copy(@"C:\Logs\local.log", @"\\servidor\share\respaldos\local.log");
+// Local to Network
+networkService.Copy(@"C:\Logs\local.log", @"\\server\share\backups\local.log");
 ```
 
-## Verificación de Acceso
+## Access Verification
 
-Puede verificar si una ruta es accesible antes de operar:
+You can verify whether a path is accessible before performing operations:
 
 ```csharp
-var perms = networkService.TestAccess(@"\\servidor\share");
+var perms = networkService.TestAccess(@"\\server\share");
 if (perms.HasFlag(DirectoryPermissions.Write)) {
-    // Tenemos permisos de escritura
+    // We have write permissions
 }
 
-// O vía ICheckable
-networkService.CheckPath = @"\\servidor\share";
+// Or via ICheckable
+networkService.CheckPath = @"\\server\share";
 var result = await networkService.CheckAsync();
 ```
 
-## Lógica Interna
+## Internal Logic
 
-### Gestión de Contextos
-Cuando se realiza una copia entre Red y Local, la librería:
-1.  Entra en el contexto suplantado para leer/escribir en la red.
-2.  Sale del contexto suplantado para leer/escribir en el disco local.
-Esto previene el error común de "Acceso denegado" que ocurre cuando un usuario de red intenta escribir en el disco C: local.
+### Context Management
+When executing a copy between Network and Local paths, the library:
+1. Enters the impersonated context to read/write on the network share.
+2. Exits the impersonated context to read/write on the local drive.
+This prevents the common "Access Denied" error that occurs when a network user attempts to write directly to the local C: drive.
 
 ---
-*Versión: 1.0.0*
-*Dependencia: Tools.Common 1.1.1*
+*Version: 1.0.0*
+*Dependency: Tools.Common 1.1.1*

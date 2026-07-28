@@ -1,10 +1,10 @@
 # Axl.Base.Database.Postgres
 
-Librería de acceso a datos para PostgreSQL, optimizada para alto rendimiento mediante la API nativa de copia binaria (`Binary COPY`). Implementa las interfaces `ISql` e `ICheckable`.
+Data access library for PostgreSQL, optimized for high performance via the native binary copy API (`Binary COPY`). Implements `ISql` and `ICheckable` interfaces.
 
-## Configuración e Inicialización
+## Configuration & Initialization
 
-La librería se inicializa exclusivamente mediante un string de conexión completo.
+The library is initialized exclusively via a complete connection string.
 
 ### Constructor
 
@@ -13,13 +13,13 @@ public Postgres(string connectionString, string name = "PostgresInstance", int c
 ```
 
 > [!IMPORTANT]
-> **Seguridad en Memoria (RAM):** El string de conexión se encripta inmediatamente en el constructor utilizando AES-256 y una semilla única del equipo. Solo se desencripta temporalmente al momento de abrir una conexión, minimizando la exposición de credenciales en memoria RAM.
+> **In-Memory Security (RAM):** The connection string is immediately encrypted in the constructor using AES-256 and a machine-unique seed. It is only temporarily decrypted when opening a connection, minimizing credential exposure in RAM.
 
-## Integración Unificada (SqlCtr)
+## Unified Integration (SqlCtr)
 
 ```csharp
-// Configuración mediante Connection String (Recomendado)
-// Soporta opciones: SSL Mode, Pooling, Maximum Pool Size, Timeout, etc.
+// Configuration via Connection String (Recommended)
+// Supports options: SSL Mode, Pooling, Maximum Pool Size, Timeout, etc.
 var connString = "Host=localhost;Port=5432;Database=testdb;Username=postgres;Password=pass;Pooling=true;Maximum Pool Size=20;Timeout=15;SSL Mode=Prefer;Trust Server Certificate=true;";
 var db = new Postgres(connString, "MyPostgres");
 
@@ -28,19 +28,19 @@ var context = new SqlCtr(db, (ICheckable)db);
 var list = await context.Sql.GetList<MyEntity>("SELECT * FROM entities");
 ```
 
-## Carga y Sincronización Masiva
+## Bulk Loading & Synchronization
 
 #### `BulkInsert(string tableName, DataTable data)`
 #### `BulkInsert<T>(string tableName, IEnumerable<T> data)`
-Utiliza `NpgsqlBinaryImporter` para realizar una copia binaria directa al servidor.
+Uses `NpgsqlBinaryImporter` to perform direct binary copying to the server.
 
 #### `Upsert<T>(string tableName, IEnumerable<T> data, string[] keyColumns)`
-Realiza una sincronización (Merge) utilizando la potencia de la cláusula `ON CONFLICT` de PostgreSQL.
+Performs synchronization (Merge) leveraging PostgreSQL's powerful `ON CONFLICT` clause.
 
-### Monitoreo (Health Check)
+### Monitoring (Health Check)
 
 #### `CheckAsync()`
-Verifica la conectividad con el servidor Postgres mediante una apertura de conexión ligera.
+Verifies connectivity with the Postgres server using a lightweight connection test.
 
 ---
-*Versión: 1.0.1*
+*Version: 1.0.1*

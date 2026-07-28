@@ -1,42 +1,42 @@
 # Tools.Logs
 
-Librería base para servicios de registro (Logging).
+Base logging services library.
 
 ## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
 ## Technical Reference (API)
 
-Implementa la interfaz `ILog`. Dependiendo de la implementación utilizada (`FileLog`, `ScreenLog`), el destino de la traza variará.
+Implements the `ILog` interface. Depending on the concrete implementation used (`FileLog`, `ScreenLog`), the log output target will vary.
 
-### Ejemplo de Uso
+### Usage Example
 
 ```csharp
 IJson json = new NewtonJson();
 
-// Log a archivo (Rota diariamente)
+// File logger (Rotates daily)
 ILog log = new FileLog(json, "Production", "C:\\Logs");
 
-// Log a consola
+// Console logger
 ILog screen = new ScreenLog(json);
 
-log.Write("Iniciando servicio...");
-log.WriteError("Fallo crítico en motor", new Exception("Stack overflow"));
+log.Write("Starting service...");
+log.WriteError("Critical engine failure", new Exception("Stack overflow"));
 ```
 
-### Métodos Principales
+### Main Methods
 
 #### `Write(string message, [CallerMemberName] string caller = "")`
-Escribe un mensaje de información.
-- **Parámetros:**
-  - `message`: El texto a registrar.
-  - `caller`: Se llena automáticamente con el nombre del método que llamó a la función.
+Writes an informational message.
+- **Parameters:**
+  - `message`: The text to log.
+  - `caller`: Automatically populated with the name of the calling method.
 
 #### `WriteError(string message, Exception ex = null, ...)`
-Escribe una traza de error, opcionalmente incluyendo el stack trace de una excepción.
+Writes an error log entry, optionally including an exception's stack trace.
 
 #### `WriteWarning(string message, ...)`
-Escribe una traza de advertencia.
+Writes a warning log entry.
 
 #### `WriteDebug(string message, ...)`
-Escribe trazas detalladas de depuración (solo visibles si la configuración del logger lo permite).
+Writes detailed debug logs (only visible if allowed by the logger configuration).

@@ -1,33 +1,33 @@
 # Tools.Background
 
-Librería para la gestión estandarizada de hilos y tareas en segundo plano en servicios de Windows y aplicaciones de larga ejecución.
+Standardized thread and background task management library for Windows Services and long-running applications.
 
-## Características
-- **Multi-Framework**: Compatible con .NET 4.0 y .NET 4.5.2+.
-- **Protección de Re-entrada**: Evita que una tarea se ejecute sobre sí misma si el trabajo tarda más que el intervalo del timer.
-- **Async & Sync**: Soporte nativo para delegados `Action` y `Func<Task>`.
-- **Apagado Seguro (Graceful Shutdown)**: Orquestador que espera a que las tareas terminen su ciclo actual antes de liberar los hilos.
+## Features
+- **Multi-Framework**: Compatible with .NET 4.0 and .NET 4.5.2+.
+- **Re-entrancy Protection**: Prevents a task from executing over itself if execution takes longer than the timer interval.
+- **Async & Sync**: Native support for `Action` and `Func<Task>` delegates.
+- **Graceful Shutdown**: Orchestrator that waits for tasks to finish their current cycle before releasing threads.
 
-## Componentes Principales
+## Main Components
 
 ### BackgroundServiceManager
 
-Actúa como el contenedor y orquestador del servicio.
+Acts as the service container and orchestrator.
 
-- **`StartAll()`**: Inicia todos los timers registrados.
-- **`StopAll(int timeoutMs)`**: Implementa el patrón de parada segura:
-    1. Detiene el disparo de nuevos eventos.
-    2. Entra en un bucle de polling esperando a que los hilos activos liberen su flag `IsRunning`.
-    3. Si se supera el timeout (def: 30s), fuerza el cierre y loguea una advertencia.
+- **`StartAll()`**: Starts all registered timers.
+- **`StopAll(int timeoutMs)`**: Implements the graceful shutdown pattern:
+    1. Stops triggering new events.
+    2. Enters a polling loop waiting for active threads to clear their `IsRunning` flag.
+    3. If the timeout is exceeded (default: 30s), forces closure and logs a warning.
 
 ### BackgroundTask
 
-Representa una unidad de trabajo periódica.
+Represents a periodic unit of work.
 
-- **`WorkSync / WorkAsync`**: El delegado que contiene la lógica de negocio.
-- **`IntervalProvider`**: Función (usualmente de `SchedulerUtils`) que define cuándo se ejecutará la próxima vez.
+- **`WorkSync / WorkAsync`**: The delegate containing the business logic.
+- **`IntervalProvider`**: Function (usually from `SchedulerUtils`) that defines when it will run next.
 
-## Ejemplo de uso en un Servicio de Windows
+## Windows Service Usage Example
 
 ```csharp
 public partial class MyService : ServiceBase
@@ -38,19 +38,19 @@ public partial class MyService : ServiceBase
     {
         _manager = new BackgroundServiceManager(_log);
 
-        // Tarea A: Cada 10 minutos
+        // Task A: Every 10 minutes
         _manager.AddTask(new BackgroundTask("Acquisitor") {
             WorkAsync = async () => await _engine.DoHeavyWork(),
             IntervalProvider = () => SchedulerUtils.GetNextMinuteInterval(10)
         });
 
-        // Tarea B: Kill Switch (Reinicio a las 3 AM)
+        // Task B: Kill Switch (Restart at 3 AM)
         var killTask = new BackgroundTask("Restart", SchedulerUtils.GetDailyRunAt(3)) {
             WorkSync = () => _manager.InvokeRequestStop()
         };
         _manager.AddTask(killTask);
 
-        // Suscribirse a la petición de parada
+        // Subscribe to stop request
         _manager.RequestStop += () => this.Stop();
 
         _manager.StartAll();
@@ -58,15 +58,15 @@ public partial class MyService : ServiceBase
 
     protected override void OnStop()
     {
-        _manager.StopAll(30000); // 30s de gracia
+        _manager.StopAll(30000); // 30s grace period
     }
 }
 ```
 
-## Beneficios
-1. **Logs Centralizados**: Se integra con `ILog` para reportar el inicio, fin y errores de cada tarea automáticamente.
-2. **Exception Handling**: Utiliza `ExceptionUtils` para desempaquetar errores anidados, facilitando el debugging.
-3. **Mantenibilidad**: Elimina los cientos de líneas de código repetitivo de wrappers de timers en cada `Service1.cs`.
+## Benefits
+1. **Centralized Logs**: Integrates with `ILog` to automatically report task start, completion, and errors.
+2. **Exception Handling**: Uses `ExceptionUtils` to unwrap nested errors, simplifying debugging.
+3. **Maintainability**: Eliminates hundreds of repetitive lines of timer wrapper boilerplate code in every `Service1.cs`.
 
 ---
-*Versión: 1.1.3*
+*Version: 1.1.3*

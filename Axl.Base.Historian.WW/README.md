@@ -1,38 +1,38 @@
 # Axl.Base.Historian.WW
 
-Librería estandarizada para la integración con **Wonderware Historian** (AVEVA Historian) a través de consultas SQL optimizadas.
+Standardized library for integrating with **Wonderware Historian** (AVEVA Historian) via optimized SQL queries.
 
-## Características
-- Adquisición de datos en tiempo real (Live) y datos históricos (Cyclic).
-- Soporte para reglas de calidad extendidas.
-- Lógica de **chunking** automática para manejar grandes volúmenes de etiquetas sin saturar SQL Server.
-- Chequeo de salud del historiador (Health Status).
+## Features
+- Real-time data acquisition (Live) and historical data retrieval (Cyclic).
+- Extended quality rules support.
+- Automatic **chunking** logic to handle large tag volumes without overloading SQL Server.
+- Historian health check status.
 
-## Instalación
-Referenciar el proyecto `Axl.Base.Historian.WW` y asegurarse de tener `Axl.Base.Common` y una implementación de `ISql` (como `Axl.Base.Database.MSSQL`).
+## Installation
+Reference the `Axl.Base.Historian.WW` project and ensure `Axl.Base.Common` and an `ISql` implementation (such as `Axl.Base.Database.MSSQL`) are included.
 
-## Modelos Principales
+## Main Models
 
 ### `ValTag`
-Representa un valor individual de una etiqueta.
-- `Tag`: Nombre de la etiqueta.
-- `Actualizacion`: Marca de tiempo.
-- `Valor`: Valor numérico (double?).
-- `Unit`: Unidades de ingeniería.
-- `Quality`: Código de calidad.
+Represents an individual tag value.
+- `Tag`: Tag name.
+- `Actualizacion`: Timestamp.
+- `Valor`: Numeric value (double?).
+- `Unit`: Engineering units.
+- `Quality`: Quality code.
 
 ### `SupTag`
-Representa una etiqueta supervisada con metadatos y su último resultado.
+Represents a supervised tag with metadata and its latest result.
 
-## Uso Básico
+## Basic Usage
 
-### Configuración del Servicio
+### Service Configuration
 ```csharp
 ISql db = new msSQL("HistorianServer", "192.168.1.10", 0, "Runtime", "sa", "password");
 IWWHistorian historian = new WWHistorianService(db, chunkSize: 100);
 ```
 
-### Adquisición de Datos Vivos
+### Live Data Acquisition
 ```csharp
 var tags = new List<string> { "Pump01.Speed", "Pump02.Speed" };
 var result = await historian.GetLiveValuesAsync(tags);
@@ -46,34 +46,34 @@ if (result.IsSuccess)
 }
 ```
 
-### Adquisición de Datos Históricos (Ciclos)
+### Historical Data Acquisition (Cycles)
 ```csharp
 DateTime end = DateTime.Now;
 DateTime start = end.AddHours(-1);
 var result = await historian.GetHistoricalValuesAsync(tags, start, end, cycleCount: 60);
 ```
 
-### Chequeo de Salud
+### Health Check
 ```csharp
 var badTags = await historian.GetHealthStatusAsync(onlyErrors: true);
 ```
 
-## Entorno de Pruebas y Mockup (Prueba de Endpoints)
+## Testing Environment & Mockup (Endpoint Testing)
 
-Para facilitar el desarrollo y la validación de la librería sin requerir conexión a un servidor físico de Wonderware Historian, se incluye un script SQL de simulación (Mockup) ubicado en:
+To facilitate development and library validation without requiring a physical connection to a Wonderware Historian server, a simulation (Mockup) SQL script is included at:
 `Axl.Base.Historian.WW/Scripts/mockup_wonderware_historian.sql`
 
-### Características del Mockup
-1. **Base de Datos Local**: Crea la base de datos `[Runtime]` y las tablas/vistas requeridas (`EngineeringUnit`, `AnalogTag`, `v_AnalogLive`, `History`, `v_Live`).
-2. **Vector de Pruebas Industrial (109 Señales)**: Incluye más de 100 señales realistas distribuidas en 10 estaciones de proceso (Boiler, Turbine, Generator, Cooling Tower, Condenser, BFP, Compressor, Substation, WTP, CEMS).
-3. **Simulación de Calidad (Health Check)**: Introduce etiquetas con códigos de calidad defectuosos (0 = Bad, 24 = Comm Failure, 28 = Out of Service, 64 = Uncertain) para validar el filtrado del endpoint `GetHealthStatusAsync`.
-4. **Series Históricas**: Poblado con 6 puntos en el tiempo para cada señal (desde hace 60 minutos hasta el tiempo actual) para probar el modo cíclico en `GetHistoricalValuesAsync`.
+### Mockup Features
+1. **Local Database**: Creates the `[Runtime]` database and required tables/views (`EngineeringUnit`, `AnalogTag`, `v_AnalogLive`, `History`, `v_Live`).
+2. **Industrial Test Vector (109 Signals)**: Includes over 100 realistic signals distributed across 10 process stations (Boiler, Turbine, Generator, Cooling Tower, Condenser, BFP, Compressor, Substation, WTP, CEMS).
+3. **Quality Simulation (Health Check)**: Introduces tags with bad quality codes (0 = Bad, 24 = Comm Failure, 28 = Out of Service, 64 = Uncertain) to validate `GetHealthStatusAsync` filtering.
+4. **Historical Series**: Populated with 6 timestamped data points for each signal (from 60 minutes ago up to current time) to test cyclic mode in `GetHistoricalValuesAsync`.
 
-### Pasos para Probar Localmente
-1. Ejecutar el script `mockup_wonderware_historian.sql` en un servidor SQL Server o LocalDB local.
-2. Configurar la cadena de conexión en la instancia de `ISql` apuntando a `localhost` y la base de datos `Runtime`.
-3. Ejecutar los métodos de la interfaz `IWWHistorian` para verificar los resultados devueltos por la fuente de datos simulada.
+### Steps for Local Testing
+1. Run the `mockup_wonderware_historian.sql` script on a local SQL Server or LocalDB instance.
+2. Configure the `ISql` connection string pointing to `localhost` and the `Runtime` database.
+3. Call `IWWHistorian` interface methods to verify results returned by the simulated data source.
 
-## Notas Técnicas
-- El modo de recuperación histórico utilizado es `Cyclic` con `wwQualityRule = 'Extended'`.
-- La librería asume que el servidor SQL tiene instalada la base de datos `Runtime` de Wonderware.
+## Technical Notes
+- Historical retrieval mode used is `Cyclic` with `wwQualityRule = 'Extended'`.
+- The library assumes the SQL Server has the Wonderware `Runtime` database installed.

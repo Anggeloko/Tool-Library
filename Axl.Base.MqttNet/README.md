@@ -1,16 +1,16 @@
-# Tools.MqttNet (Moderno)
+# Tools.MqttNet (Modern)
 
-Librería avanzada para cliente MQTT asíncrono basada en `MQTTnet`.
+Advanced asynchronous MQTT client library based on `MQTTnet`.
 
 ## Prerequisites
 - **Framework:** .NET Framework 4.5.2.
 
-## Dependencias de NuGet
+## NuGet Dependencies
 - `MQTTnet` (v4.3.3.952)
 
 ## Technical Reference (API)
 
-### Clase `MqttNetService`
+### Class `MqttNetService`
 
 #### Usage Example
 
@@ -24,46 +24,46 @@ mqtt.DataReceived += (s, e) => {
 await mqtt.ConnectAsync();
 await mqtt.SubscribeAsync(new[] { "factory/alerts", "factory/status" });
 
-// Publicar objeto (Serialización automática a JSON)
+// Publish object (Automatic JSON serialization)
 await mqtt.PublishAsync("factory/telemetry", new { Temp = 22.5, Status = "OK" });
 
-// Verificar estado de conexión
+// Check connection status
 if (mqtt.IsConnected) {
-    Console.WriteLine("Conectado al broker.");
+    Console.WriteLine("Connected to broker.");
 }
 ```
 
 #### `bool IsConnected`
-Obtiene un valor que indica si el cliente está actualmente conectado al broker MQTT.
+Gets a value indicating whether the client is currently connected to the MQTT broker.
 
 #### `MqttQos Qos`
-Define el nivel de calidad de servicio (QoS) para las operaciones de publicación y suscripción. Por defecto es `AtLeastOnce` (1).
-- **Valores:** `AtMostOnce` (0), `AtLeastOnce` (1), `ExactlyOnce` (2).
+Sets the Quality of Service (QoS) level for publish and subscribe operations. Default is `AtLeastOnce` (1).
+- **Values:** `AtMostOnce` (0), `AtLeastOnce` (1), `ExactlyOnce` (2).
 
 #### `bool UseCompression`
-Si se establece en `true`, el cliente utilizará compresión GZip interna para los mensajes enviados y recibidos. Esto es ideal para reducir el ancho de banda sin dependencias externas.
+If set to `true`, the client uses internal GZip compression for sent and received messages. Ideal for reducing bandwidth without external dependencies.
 
 #### `Task ConnectAsync()`
-Conexión asíncrona al broker. Configura automáticamente el `ClientId` usando `MachineInfo.Hash()` si no se provee uno en el constructor.
-- **Excepciones:** Lanza `Exception` con detalles si la conexión falla.
+Asynchronous connection to the broker. Automatically configures `ClientId` using `MachineInfo.Hash()` if none is provided in the constructor.
+- **Exceptions:** Throws `Exception` with details if connection fails.
 
 #### `Task SubscribeAsync(string[] topics)`
-Suscribe el cliente a múltiples tópicos en una sola operación.
+Subscribes the client to multiple topics in a single operation.
 
 #### `Task PublishAsync(string topic, string payload)`
-Publica un mensaje de texto plano en el tópico indicado.
+Publishes a plain text message to the specified topic.
 
 #### `Task PublishAsync<T>(string topic, T payload)`
-Serializa automáticamente el objeto `payload` a JSON y lo publica.
+Automatically serializes the `payload` object to JSON and publishes it.
 
 #### `event EventHandler Connected`
-Evento que se dispara cuando la conexión asíncrona se establece.
+Event triggered when the asynchronous connection is established.
 
 #### `event EventHandler Disconnected`
-Evento que se dispara cuando la conexión se pierde o se cierra.
+Event triggered when the connection is lost or closed.
 
 #### `event EventHandler<MqttData> DataReceived`
-Evento asíncrono para recepción de datos.
+Asynchronous event for receiving data.
 
 > [!TIP]
-> Se recomienda suscribirse a `Connected` y `Disconnected` para gestionar la lógica de reconexión o actualización de UI de forma reactiva.
+> It is recommended to subscribe to `Connected` and `Disconnected` to reactively handle reconnection or UI update logic.

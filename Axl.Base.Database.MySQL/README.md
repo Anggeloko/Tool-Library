@@ -1,10 +1,10 @@
 # Axl.Base.Database.MySQL
 
-Librería de acceso a datos para MySQL Server, optimizada para alto rendimiento e inserciones masivas. Implementa las interfaces `ISql` e `ICheckable`.
+Data access library for MySQL Server, optimized for high performance and bulk insertions. Implements `ISql` and `ICheckable` interfaces.
 
-## Configuración e Inicialización
+## Configuration & Initialization
 
-La librería permite la inicialización mediante un string de conexión completo, lo cual es la forma recomendada para aprovechar todas las capacidades del driver.
+The library supports initialization via a complete connection string, which is the recommended approach to leverage all driver capabilities.
 
 ### Constructor
 
@@ -12,20 +12,20 @@ La librería permite la inicialización mediante un string de conexión completo
 public MySQL(string connectionString, string name = "MySQL", int timeout = 30)
 ```
 
-- **connectionString**: Cadena de conexión estándar de MySQL.
-- **name**: Identificador de la instancia (útil para logs).
-- **timeout**: Tiempo de espera predeterminado para comandos.
+- **connectionString**: Standard MySQL connection string.
+- **name**: Instance identifier (useful for logging).
+- **timeout**: Default command timeout in seconds.
 
 > [!IMPORTANT]
-> **Seguridad en Memoria (RAM):** El string de conexión se encripta inmediatamente en el constructor utilizando AES-256 y una semilla única del equipo. Solo se desencripta temporalmente al momento de abrir una conexión, minimizando la exposición de credenciales en memoria RAM.
+> **In-Memory Security (RAM):** The connection string is immediately encrypted in the constructor using AES-256 and a machine-unique seed. It is only temporarily decrypted when opening a connection, minimizing credential exposure in RAM.
 
-## Integración Unificada (SqlCtr)
+## Unified Integration (SqlCtr)
 
-Compatible con el contenedor `SqlCtr` de `Axl.Base.Common`, permitiendo alternar entre proveedores sin cambiar la lógica de negocio:
+Compatible with the `SqlCtr` container from `Axl.Base.Common`, allowing switching between database providers without altering business logic:
 
 ```csharp
-// Configuración mediante Connection String (Recomendado)
-// Soporta opciones: SslMode, Pooling, Max Pool Size, Connection Timeout, etc.
+// Configuration via Connection String (Recommended)
+// Supports options: SslMode, Pooling, Max Pool Size, Connection Timeout, etc.
 var connString = "Server=127.0.0.1;Port=3306;Database=test;Uid=user;Pwd=pass;Pooling=true;Max Pool Size=50;Connection Timeout=15;SslMode=Preferred;";
 var db = new MySQL(connString, "MyConn");
 
@@ -34,20 +34,20 @@ var context = new SqlCtr(db, (ICheckable)db);
 var result = await context.Sql.GetList<User>("SELECT * FROM Users");
 ```
 
-## Inserción y Sincronización Masiva (Bulk/Upsert)
+## Bulk Insertion & Synchronization (Bulk/Upsert)
 
 #### `BulkInsert(string tableName, DataTable data)`
 #### `BulkInsert<T>(string tableName, IEnumerable<T> data)`
-Implementado mediante la técnica de **Inserción Multi-row** optimizada. El método procesa los datos en lotes (batches) configurables para maximizar el rendimiento y evitar límites de tamaño de paquete del servidor.
+Implemented using an optimized **Multi-row Insertion** technique. The method processes data in configurable batches to maximize throughput and avoid server packet size limits.
 
 #### `Upsert<T>(string tableName, IEnumerable<T> data, string[] keyColumns)`
-Realiza una sincronización masiva de datos (Insert/Update) utilizando una tabla temporal staging y joins de actualización. Garantiza la atomicidad de la operación en el servidor.
-- **Retorno:** `Task<Result<int>>` (total de filas afectadas).
+Executes bulk data synchronization (Insert/Update) using a temporary staging table and update joins. Guarantees atomic server-side operations.
+- **Return:** `Task<Result<int>>` (total affected rows).
 
-### Monitoreo (Health Check)
+### Monitoring (Health Check)
 
 #### `CheckAsync()`
-Verifica la conectividad con el servidor MySQL mediante una apertura de conexión ligera.
+Verifies connectivity with the MySQL server using a lightweight connection test.
 
 ---
-*Versión: 1.1.5*
+*Version: 1.1.5*

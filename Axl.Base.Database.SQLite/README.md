@@ -1,59 +1,59 @@
 # Tools.Database.SQLite
 
-Implementación del cliente para SQLite v3 orientada a persistencia local de configuraciones y variables de forma segura (encriptada).
+SQLite v3 client implementation oriented towards secure (encrypted) local persistence of configurations and variables.
 
 ## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
-## Dependencias de NuGet
+## NuGet Dependencies
 - `System.Data.SQLite.Core` (v1.0.119)
 - `Newtonsoft.Json` (v13.0.4)
 
 ## Technical Reference (API)
 
-### Clase `SQLiteService`
+### Class `SQLiteService`
 
-Gestiona el almacenamiento de variables en una base de datos SQLite local (`settings.db`), utilizando encriptación AES-256 basada en el hardware de la máquina.
+Manages variable storage in a local SQLite database (`settings.db`), using machine hardware-based AES-256 encryption.
 
 #### Usage Example
 
 ```csharp
-// Se inicializa con la ruta donde se guardará el settings.db
+// Initialized with the folder path where settings.db will be stored
 var settings = new SQLiteService("C:\\ProgramData\\MyApp");
 
-// Guardar (Se encripta automáticamente)
+// Save (Automatically encrypted)
 settings.SetVariable("ApiKey", "12345-ABCDE");
 
-// Recuperar (Se desencripta automáticamente)
+// Retrieve (Automatically decrypted)
 string key = settings.GetVariable("ApiKey", "default_if_not_found");
 
-// Leer todo
+// Read all
 var all = settings.ReadVariables();
 ```
 
 #### `GetVariable(string key, string defaultValue = null)`
-Recupera el valor de una variable específica.
-- **Auto-Curación:** Si el dato fue guardado con una identidad de máquina anterior (ej. cambio de nombre), el método lo re-encripta automáticamente con la identidad actual.
-- **Retorno:** `string` (valor desencriptado o `defaultValue`).
+Retrieves the value of a specific variable.
+- **Self-Healing:** If the data was saved using a previous machine identity (e.g. computer rename), the method automatically re-encrypts it using the current identity.
+- **Return:** `string` (decrypted value or `defaultValue`).
 
 #### `SetVariable(string key, string value)`
-Guarda o actualiza una variable específica. Asegura que no existan duplicados eliminando registros previos asociados a la misma llave bajo cualquier hash de máquina conocido.
+Saves or updates a specific variable. Ensures no duplicates exist by removing previous records associated with the same key under any known machine hash.
 
 #### `DeleteVariable(string key)`
-Elimina una variable de la base de datos.
+Deletes a variable from the database.
 
 #### `ReadVariables()`
-Lee todas las variables almacenadas en la base de datos.
-- **Retorno:** `List<VariableItem>`.
+Reads all variables stored in the database.
+- **Return:** `List<VariableItem>`.
 
 #### `SaveVariables(IEnumerable<VariableItem> variables)`
-Guarda una colección completa de variables, sobrescribiendo el contenido actual de la tabla.
+Saves a complete collection of variables, overwriting the current table contents.
 
 ---
 
 ### Model `VariableItem`
 
-Clase base para el manejo de pares clave-valor con soporte para notificación de cambios.
+Base class for managing key-value pairs with change notification support.
 
-- **`Key`**: Identificador de la variable.
-- **`Value`**: Valor de la variable (encriptado automáticamente al persistir).
+- **`Key`**: Variable identifier.
+- **`Value`**: Variable value (automatically encrypted when persisted).

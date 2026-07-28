@@ -1,40 +1,40 @@
 # Tools.Json.Newton
 
-Implementación del servicio de serialización JSON utilizando la popular librería `Newtonsoft.Json`.
+JSON serialization service implementation using the popular `Newtonsoft.Json` library.
 
 ## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
-## Dependencias de NuGet
+## NuGet Dependencies
 - `Newtonsoft.Json` (v13.0.3)
 
 ## Technical Reference (API)
 
-Implementa la interfaz `IJson` de `Tools.Common`.
+Implements the `IJson` interface from `Tools.Common`.
 
-### Clase `JsonNewtonService`
+### Class `JsonNewtonService`
 
 #### Usage Example
 
 ```csharp
 IJson json = new NewtonJson();
 
-// Serializar
+// Serialize
 var data = new { User = "Axl", Role = "Admin" };
 string raw = json.Serialize(data);
 
-// Deserializar
+// Deserialize
 var obj = json.Deserialize<MyModel>(raw);
 ```
 
 #### `Serialize(object obj)`
-Serializa cualquier objeto a una cadena JSON utilizando los ajustes estándar de Newtonsoft.
-- **Parámetros:**
-  - `obj`: El objeto a serializar.
-- **Retorno:** `string` conteniendo el JSON.
+Serializes any object into a JSON string using standard Newtonsoft settings.
+- **Parameters:**
+  - `obj`: The object to serialize.
+- **Return:** `string` containing the JSON.
 
 #### `Deserialize<T>(string json)`
-Deserializa una cadena JSON al tipo de objeto especificado.
-- **Parámetros:**
-  - `json`: Cadena de texto en formato JSON.
-- **Retorno:** Instancia de `T`.
+Deserializes a JSON string into an instance of the specified object type.
+- **Parameters:**
+  - `json`: String formatted in JSON.
+- **Return:** Instance of `T`.

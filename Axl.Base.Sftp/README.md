@@ -1,59 +1,59 @@
 # Tools.Sftp
 
-Librería de cliente SFTP robusta para .NET Framework 4.5.2+, basada en SSH.NET. Proporciona métodos simplificados para la gestión recursiva de directorios y transferencia de archivos.
+Robust SFTP client library for .NET Framework 4.5.2+, based on SSH.NET. Provides simplified methods for recursive directory management and file transfers.
 
-## Características
+## Features
 
-- **Operaciones Recursivas**: Sube y descarga estructuras de carpetas completas automáticamente.
-- **Normalización de Rutas**: Gestiona separadores de ruta (`\` vs `/`) de forma transparente entre Windows y Linux.
-- **Inyección de Dependencias**: Diseñada para trabajar con `ISftpService` e `ILog`.
-- **Compatibilidad Legacy**: Optimizada para .NET 4.5.2.
+- **Recursive Operations**: Automatically uploads and downloads entire folder structures.
+- **Path Normalization**: Transparently handles path separators (`\` vs `/`) between Windows and Linux systems.
+- **Dependency Injection**: Designed to work seamlessly with `ISftpService` and `ILog`.
+- **Legacy Compatibility**: Optimized for .NET 4.5.2.
 
-## Configuración
+## Configuration
 
 ```csharp
 var config = new SftpConfig {
     Host = "127.0.0.1",
     Port = 22,
     User = "admin",
-    Password = "password_seguro",
-    RemotePath = "/uploads" // Ruta base para todas las operaciones
+    Password = "secure_password",
+    RemotePath = "/uploads" // Base path for all operations
 };
 ```
 
-## Uso Básico
+## Basic Usage
 
-### Subir un Archivo
+### Uploading a File
 
 ```csharp
 var sftp = new SftpService(config, logger);
-var result = await sftp.UploadFile("ruta/local/archivo.txt", "carpeta/remota");
+var result = await sftp.UploadFile("local/path/file.txt", "remote/folder");
 ```
 
-### Subir una Carpeta (Recursivo)
+### Uploading a Folder (Recursive)
 
 ```csharp
-// Sube todo el contenido de la carpeta local al destino remoto
-var result = await sftp.UploadFolder("C:\\MisDatos", "respaldo/hoy");
+// Uploads all contents of local folder to remote destination
+var result = await sftp.UploadFolder("C:\\MyData", "backup/today");
 ```
 
-### Descargar una Carpeta
+### Downloading a Folder
 
 ```csharp
-var result = await sftp.DownloadFolder("remoto/datos", "C:\\Descargas");
+var result = await sftp.DownloadFolder("remote/data", "C:\\Downloads");
 ```
 
-## Lógica Interna
+## Internal Logic
 
-### Manejo de Rutas
-La librería normaliza las rutas automáticamente. Si usas `C:\Temp` como ruta local y `carpeta/sub` como remota, el servicio asegura que el servidor SFTP reciba `/carpeta/sub` con slashes estilo Linux.
+### Path Handling
+The library normalizes paths automatically. If you supply `C:\Temp` as local path and `folder/sub` as remote, the service ensures the SFTP server receives Linux-style slashes `/folder/sub`.
 
-### Creación de Directorios
-Al subir archivos o carpetas, el servicio verifica automáticamente si los directorios de destino existen y los crea recursivamente si es necesario.
+### Directory Creation
+When uploading files or folders, the service automatically checks if destination directories exist and creates them recursively if necessary.
 
-## Manejo de Errores
-Retorna `Result<T>` o `Result<List<string>>` para operaciones en lote, proporcionando una lista detallada de cualquier archivo que haya fallado durante las transferencias recursivas.
+## Error Handling
+Returns `Result<T>` or `Result<List<string>>` for batch operations, providing a detailed list of any files that failed during recursive transfers.
 
 ---
-*Versión: 1.1.1*
-*Dependencia: SSH.NET 2020.0.2*
+*Version: 1.1.1*
+*Dependency: SSH.NET 2020.0.2*

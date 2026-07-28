@@ -1,28 +1,28 @@
 # Tools.Json.Legacy
 
-Librería para serialización JSON optimizada para compatibilidad.
+JSON serialization library optimized for backward compatibility.
 
 ## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
 ## Technical Reference (API)
 
-### Clase `JsonService`
+### Class `JsonService`
 
 #### Usage Example
 
 ```csharp
 var legacyJson = new LegacyJson();
 
-// Operaciones estándar IJson
+// Standard IJson operations
 string json = legacyJson.Serialize(new { Id = 1 });
 var item = legacyJson.Deserialize<MyItem>(json);
 ```
 
 #### `Serialize(object obj)`
-Convierte un objeto a su representación en cadena JSON.
-- **Retorno:** `string`.
+Converts an object into its JSON string representation.
+- **Return:** `string`.
 
 #### `Deserialize<T>(string json)`
-Convierte una cadena JSON a un objeto del tipo especificado.
-- **Retorno:** `T`.
+Converts a JSON string into an object of the specified type.
+- **Return:** `T`.

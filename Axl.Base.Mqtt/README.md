@@ -1,13 +1,13 @@
 # Tools.Mqtt (Legacy)
 
-Librería para cliente MQTT legacy síncrono.
+Legacy synchronous MQTT client library.
 
 ## Prerequisites
 - **Framework:** .NET Framework 4.0.
 
 ## Technical Reference (API)
 
-### Clase `MQTTService`
+### Class `MQTTService`
 
 #### Usage Example
 
@@ -15,46 +15,46 @@ Librería para cliente MQTT legacy síncrono.
 var mqtt = new MQTTService("localhost");
 
 mqtt.DataReceived += (s, e) => {
-    Console.WriteLine($"Tópico: {e.Topic}, Mensaje: {e.Payload}");
+    Console.WriteLine($"Topic: {e.Topic}, Message: {e.Payload}");
 };
 
 mqtt.Connect();
 
 if (mqtt.IsConnected) {
-    mqtt.Subscribe(new[] { "sensores/temp" });
-    mqtt.Publish("comandos/reset", "1");
+    mqtt.Subscribe(new[] { "sensors/temp" });
+    mqtt.Publish("commands/reset", "1");
 }
 ```
 
 #### `bool IsConnected`
-Obtiene un valor que indica si el cliente está actualmente conectado al broker MQTT.
+Gets a value indicating whether the client is currently connected to the MQTT broker.
 
 #### `MqttQos Qos`
-Define el nivel de calidad de servicio (QoS) para las operaciones de publicación y suscripción. Por defecto es `AtLeastOnce` (1).
-- **Valores:** `AtMostOnce` (0), `AtLeastOnce` (1), `ExactlyOnce` (2).
+Sets the Quality of Service (QoS) level for publish and subscribe operations. Default is `AtLeastOnce` (1).
+- **Values:** `AtMostOnce` (0), `AtLeastOnce` (1), `ExactlyOnce` (2).
 
 #### `bool UseCompression`
-Si se establece en `true`, el cliente utilizará compresión GZip interna para los mensajes enviados y recibidos. Esto es ideal para reducir el ancho de banda sin dependencias externas.
+If set to `true`, the client uses internal GZip compression for sent and received messages. Ideal for reducing bandwidth without external dependencies.
 
 #### `Connect()`
-Establece la conexión con el broker utilizando los parámetros provistos en el constructor.
-- **Excepciones:** Lanza `Exception` si la conexión falla.
+Establishes connection to the broker using parameters provided in the constructor.
+- **Exceptions:** Throws `Exception` if the connection fails.
 
 #### `Subscribe(string[] topics)`
-Suscribe el cliente a múltiples tópicos.
+Subscribes the client to multiple topics.
 
 #### `Publish(string topic, string message)`
-Envía un mensaje al broker.
+Sends a message to the broker.
 
 #### `event EventHandler Connected`
-Evento que se dispara cuando la conexión con el broker se establece exitosamente.
+Event triggered upon successfully establishing connection with the broker.
 
 #### `event EventHandler Disconnected`
-Evento que se dispara cuando se pierde la conexión con el broker o se cierra manualmente.
+Event triggered when connection to the broker is lost or manually closed.
 
 #### `event EventHandler<MqttData> DataReceived`
-Evento que se dispara cuando llega un mensaje de un tópico suscrito.
-- **MqttData:** Contiene `Topic`, `Payload` y `Timestamp`.
+Event triggered when a message arrives on a subscribed topic.
+- **MqttData:** Contains `Topic`, `Payload`, and `Timestamp`.
 
 > [!TIP]
-> Siempre verifique la propiedad `IsConnected` antes de realizar operaciones de publicación o suscripción para evitar errores catastróficos.
+> Always verify the `IsConnected` property before performing publish or subscribe operations to prevent unhandled exceptions.

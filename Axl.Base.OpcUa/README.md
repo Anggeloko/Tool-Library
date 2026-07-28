@@ -1,13 +1,13 @@
 # Tools.OpcUa
 
-Librería para cliente OPC UA moderna y asíncrona.
+Modern asynchronous OPC UA client library.
 
 ## Prerequisites
 - **Framework:** .NET Framework 4.7.2.
 
 ## Technical Reference (API)
 
-### Clase `OpcUaClient`
+### Class `OpcUaClient`
 
 #### Usage Example
 
@@ -17,7 +17,7 @@ using (var client = new OpcUaClient(endpoint))
 {
     await client.ConnectAsync();
 
-    // Lectura de nodos
+    // Reading nodes
     var nodes = new List<string> { "ns=2;s=Device1.Temperature", "ns=2;s=Device1.Pressure" };
     var result = await client.ReadNodesAsync(nodes);
 
@@ -26,21 +26,21 @@ using (var client = new OpcUaClient(endpoint))
             Console.WriteLine($"{kvp.Key}: {kvp.Value}");
     }
 
-    // Navegación (Browse)
+    // Browsing nodes
     var children = await client.BrowseNodesAsync("ns=2;s=Device1");
 }
 ```
 
 #### `Task ConnectAsync()`
-Establece la sesión con el servidor. Maneja automáticamente el autodescubrimiento de endpoints y la confianza de certificados.
-- **Excepciones:** Lanza `Exception` si la conexión o el descubrimiento fallan.
+Establishes a session with the server. Automatically handles endpoint auto-discovery and certificate trusting.
+- **Exceptions:** Throws `Exception` if connection or endpoint discovery fails.
 
 #### `Task<Result<Dictionary<string, string>>> ReadNodesAsync(List<string> nodeIds)`
-Lee el valor actual de una lista de NodeIds.
-- **Parámetros:**
-  - `nodeIds`: Lista de cadenas con los IDs de los nodos (ej. `ns=2;s=Device1.Temperature`).
-- **Retorno:** `Result<Dictionary<string, string>>`. El diccionario usa el NodeId como clave y el valor convertido a string como contenido.
+Reads the current value of a list of NodeIds.
+- **Parameters:**
+  - `nodeIds`: List of strings containing NodeIds (e.g. `ns=2;s=Device1.Temperature`).
+- **Return:** `Result<Dictionary<string, string>>`. The dictionary uses the NodeId as key and the string-converted value as content.
 
 #### `Task<Result<Dictionary<string, string>>> BrowseNodesAsync(string rootNodeId)`
-Explora los nodos hijos de un nodo raíz y lee sus valores actuales.
-- **Retorno:** `Result<Dictionary<string, string>>` con todos los nodos encontrados en el primer nivel de profundidad.
+Browses child nodes under a root node and reads their current values.
+- **Return:** `Result<Dictionary<string, string>>` with all child nodes discovered on the first depth level.

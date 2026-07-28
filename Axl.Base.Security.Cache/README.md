@@ -1,44 +1,44 @@
 # Axl.Base.Security.Cache
 
-Librería de caché en memoria temporizada y segura para objetos `SecretValue`. Proporciona un ciclo de vida corto y controlado para secretos sensibles en memoria RAM, evitando que permanezcan de forma indefinida en texto plano.
+Timed and secure in-memory cache library for `SecretValue` objects. Provides a short, controlled lifecycle for sensitive secrets in RAM, preventing them from residing indefinitely in plain text.
 
-## Seguridad en Memoria (Mitigación de Memory Dumps)
+## In-Memory Security (Memory Dump Mitigation)
 > [!IMPORTANT]
-> A diferencia de las cachés en memoria clásicas que guardan los valores expuestos en texto plano, `SecretCache` encripta internamente los bytes de los secretos en la memoria RAM utilizando **DPAPI** (`ProtectedData.Protect` bajo `DataProtectionScope.LocalMachine`). 
+> Unlike classical in-memory caches that store exposed values in plain text, `SecretCache` internally encrypts secret bytes in RAM using **DPAPI** (`ProtectedData.Protect` under `DataProtectionScope.LocalMachine`). 
 > 
-> De esta forma, si se realiza un volcado de memoria (Memory Dump) del proceso, los secretos de la caché no son visibles. Solo se desencriptan en un búfer temporal efímero en el microsegundo exacto de la petición, el cual es inmediatamente rellenado con ceros (`Array.Clear`) tras envolverse en el `SecretValue`.
+> As a result, if a process memory dump occurs, cached secrets are not exposed. They are only decrypted into an ephemeral temporary buffer during the exact microsecond of the request, which is immediately zero-filled (`Array.Clear`) after being wrapped into the returned `SecretValue`.
 
 ## Prerequisites
-- **Framework:** .NET Framework 4.0 o superior.
-- **Dependencies:** `Axl.Base.Common` (para usar `SecretValue`).
+- **Framework:** .NET Framework 4.0 or higher.
+- **Dependencies:** `Axl.Base.Common` (for `SecretValue` usage).
 
 ---
 
 ## Technical Reference (API)
 
-### Clase `SecretCache`
-Clase estática hilo-segura (`lock`) para almacenar y recuperar de forma controlada objetos `SecretValue`.
+### Class `SecretCache`
+Thread-safe static class (`lock`) to store and retrieve `SecretValue` objects in a controlled manner.
 
 #### `SecretValue GetOrAdd(string key, TimeSpan ttl, Func<SecretValue> retrieveFunc)`
-Recupera un secreto desde la memoria caché estática. Si el secreto no existe o ha expirado, invoca el delegado físico suministrado, inicializa y guarda una copia de la caché, y devuelve el valor.
+Retrieves a secret from static in-memory cache. If the secret does not exist or has expired, it invokes the provided physical delegate, initializes and saves a cached copy, and returns the value.
 * **Parameters:**
-  - `key`: Identificador único del secreto en la caché (búsqueda case-insensitive).
-  - `ttl`: Tiempo de vida en caché (*Time-To-Live*) antes de ser marcado como expirado y destruido.
-  - `retrieveFunc`: Función delegada ejecutada solo si la caché requiere actualización física.
-* **Return:** Un objeto `SecretValue` independiente. El llamador es responsable de hacerle `Dispose()` cuando finalice su uso.
+  - `key`: Unique secret identifier in the cache (case-insensitive lookup).
+  - `ttl`: Time-To-Live in cache before being marked as expired and destroyed.
+  - `retrieveFunc`: Delegate function executed only if the cache requires a physical refresh.
+* **Return:** An independent `SecretValue` object. The caller is responsible for calling `Dispose()` when finished.
 
 #### `void Invalidate(string key)`
-Invalida y remueve inmediatamente un secreto específico de la caché en memoria, de forma que se destruye y sobrescribe con ceros su contenido.
+Immediately invalidates and removes a specific secret from the in-memory cache, destroying and overwriting its content with zeroes.
 
 #### `void Clear()`
-Invalida, remueve y limpia de forma segura con ceros **todos** los secretos en memoria almacenados en la caché.
+Invalidates, removes, and safely zero-fills **all** in-memory secrets stored in the cache.
 
 ---
 
-## Ejemplos de Uso Práctico
+## Practical Usage Examples
 
-### Ejemplo 1: Integración en Clases de Configuración (Caso `Cfg.cs` con Credenciales de Broker)
-En lugar de almacenar las contraseñas o usuarios sensibles descifrados de forma estática en propiedades `string` permanentes en memoria, se utiliza la caché para solicitarlas bajo demanda:
+### Example 1: Integration in Configuration Classes (Case `Cfg.cs` with Broker Credentials)
+Instead of storing decrypted sensitive passwords or usernames permanently in static `string` properties in memory, the cache is used to request them on-demand:
 
 ```csharp
 using System;
@@ -50,13 +50,13 @@ public class AppConfig
 {
     private readonly string _dbPath = @"C:\Data\settings.db";
     
-    // Parámetros públicos no-sensibles
+    // Public non-sensitive parameters
     public string BrokerIp { get; set; }
     public int BrokerPort { get; set; }
 
     public AppConfig()
     {
-        // Cargamos variables comunes en el constructor
+        // Load common variables in constructor
         using (var sqlite = new SQLiteService(_dbPath))
         {
             var configList = sqlite.ReadVariables();
@@ -71,7 +71,7 @@ public class AppConfig
     }
 
     /// <summary>
-    /// Obtiene el usuario del Broker de forma segura desde la caché temporal
+    /// Securely retrieves Broker Username from temporary cache
     /// </summary>
     public SecretValue GetBrokerUser()
     {
@@ -79,7 +79,7 @@ public class AppConfig
         {
             using (var sqlite = new SQLiteService(_dbPath))
             {
-                // Simulación de lectura del valor cifrado en base de datos
+                // Simulated reading of encrypted database value
                 string decryptedUser = sqlite.ReadRawSecret("BROKERUSER");
                 return new SecretValue(decryptedUser);
             }
@@ -87,7 +87,7 @@ public class AppConfig
     }
 
     /// <summary>
-    /// Obtiene la contraseña del Broker de forma segura desde la caché temporal
+    /// Securely retrieves Broker Password from temporary cache
     /// </summary>
     public SecretValue GetBrokerPswd()
     {
@@ -103,28 +103,28 @@ public class AppConfig
 }
 ```
 
-#### Consumo de las Credenciales para Conectar el Cliente:
+#### Consuming Credentials to Connect the Client:
 ```csharp
 public void ConnectToMqtt(AppConfig config)
 {
-    // Obtenemos los valores de la caché (solo existirán desencriptados dentro de este bloque)
+    // Retrieve values from cache (they will only exist decrypted within this block scope)
     using (SecretValue user = config.GetBrokerUser())
     using (SecretValue password = config.GetBrokerPswd())
     {
         var options = new MqttClientOptionsBuilder()
             .WithTcpServer(config.BrokerIp, config.BrokerPort)
-            .WithCredentials(user.GetString(), password.GetString()) // Se decodifica y usa al vuelo
+            .WithCredentials(user.GetString(), password.GetString()) // Decoded and used on the fly
             .Build();
 
         _mqttClient.ConnectAsync(options);
     } 
-    // Los datos sensibles en memoria RAM de 'user' y 'password' son sobrescritos con ceros aquí
+    // Sensitive RAM data for 'user' and 'password' is zero-overwritten here
 }
 ```
 
 ---
 
-### Ejemplo 2: Uso Directo con Inyección de Dependencias
+### Example 2: Direct Usage with Dependency Injection
 ```csharp
 using System;
 using Axl.Base.Interfaces;
@@ -138,16 +138,16 @@ public class DatabaseWatcher
 
     public void ProcessTask()
     {
-        // Solicita el secreto a la caché estática con TTL de 10 minutos.
-        // Solo leerá físicamente el Registro si no existe o ya pasaron los 10 minutos.
+        // Requests secret from static cache with 10-minute TTL.
+        // Will only physically read Registry if missing or expired after 10 minutes.
         using (SecretValue secret = SecretCache.GetOrAdd(
             "DbConnectionString", 
             TimeSpan.FromMinutes(10), 
             () => _store.RetrieveSecretSecure("DbConnectionString")))
         {
             string connectionString = secret.GetString();
-            // Ejecutar consultas de base de datos...
-        } // 'secret' se destruye y limpia sus bytes en memoria al salir del bloque
+            // Execute database queries...
+        } // 'secret' is destroyed and its memory bytes zeroed upon exiting block
     }
 }
 ```

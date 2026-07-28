@@ -1,27 +1,27 @@
 # Axl.Base.Persistence
 
-Librería para la persistencia robusta de variables y configuraciones locales. Proporciona un mecanismo para guardar objetos serializados en archivos `.bin` con encriptación hardware-linked y compresión GZip.
+Library for robust local variable and configuration persistence. Provides mechanisms for saving serialized objects into `.bin` files featuring hardware-linked encryption and GZip compression.
 
-## Características Principales
+## Main Features
 
-- **Seguridad**: Encriptación AES-256 utilizando un hash derivado del hardware de la máquina (`MachineInfo`).
-- **Eficiencia**: Compresión automática mediante `GZipStream`.
-- **Mantenimiento**: Limpieza automática de archivos antiguos opcional.
-- **Abstracción**: Interfaz `IVariableStorage` para desacoplar la lógica de negocio del almacenamiento físico.
+- **Security**: AES-256 encryption utilizing a machine hardware-derived hash (`MachineInfo`).
+- **Efficiency**: Automatic compression via `GZipStream`.
+- **Maintenance**: Optional automatic cleanup of old files.
+- **Abstraction**: `IVariableStorage` interface to decouple business logic from physical storage.
 
-## Instalación
+## Installation
 
-Añadir la referencia al proyecto o instalar vía NuGet:
+Add the reference to your project or install via NuGet:
 
 ```xml
 <ProjectReference Include="..\Axl.Base.Persistence\Axl.Base.Persistence.csproj" />
 ```
 
-## Uso Básico
+## Basic Usage
 
-### Inicialización
+### Initialization
 
-Se recomienda inyectar el servicio de persistencia pasando la ruta base, un proveedor de JSON (como `LegacyJson`) y un Logger.
+Injecting the persistence service with a base directory path, a JSON provider (such as `LegacyJson`), and a Logger is recommended.
 
 ```csharp
 using Axl.Base.Persistence.Interfaces;
@@ -34,46 +34,46 @@ string basePath = @"C:\ProgramData\MyApp\Config";
 IVariableStorage storage = new LocalVariableStorage(basePath, new LegacyJson(), new FileLog());
 ```
 
-### Guardar una Variable
+### Saving a Variable
 
 ```csharp
 var myConfig = new { Server = "127.0.0.1", Port = 8080 };
 storage.Save("CONNECTION_SETTINGS", myConfig);
 ```
 
-### Cargar una Variable
+### Loading a Variable
 
 ```csharp
 var config = storage.Load<MyConfigClass>("CONNECTION_SETTINGS");
 if (config != null) 
 {
-    // Usar la configuración...
+    // Use configuration...
 }
 ```
 
-### Eliminar una Variable
+### Deleting a Variable
 
 ```csharp
 storage.Delete("CONNECTION_SETTINGS");
 ```
 
 #### `bool UseCompression`
-Define si los archivos se guardan comprimidos con GZip. Por defecto es `true`.
-- **Nota:** Si se desactiva, los archivos nuevos serán texto plano encriptado, pero la librería seguirá intentando descomprimir archivos existentes si detecta el formato GZip.
+Defines whether files are stored compressed using GZip. Default is `true`.
+- **Note:** If set to false, new files will be encrypted plain text, but the library will still attempt to decompress existing files if GZip format is detected.
 
-## Configuración de Limpieza (FileCleaner)
+## Cleanup Configuration (FileCleaner)
 
-El constructor acepta un parámetro opcional `cleanupDays` (por defecto `1`):
+The constructor accepts an optional `cleanupDays` parameter (default `1`):
 
-- **Si es > 0**: Borra automáticamente los archivos en el directorio de datos que tengan más días de antigüedad que el valor especificado.
-- **Si es <= 0**: Deshabilita la limpieza automática.
+- **If > 0**: Automatically deletes files in the data directory older than the specified number of days.
+- **If <= 0**: Disables automatic cleanup.
 
 ```csharp
-// Deshabilitar limpieza automática
+// Disable automatic cleanup
 var storage = new LocalVariableStorage(path, json, log, cleanupDays: 0);
 ```
 
-## Dependencias
+## Dependencies
 
-- `Axl.Base.Common`: Para encriptación, hashes de hardware y utilidades de limpieza.
-- `Axl.Base.Interfaces`: Para `IJson` e `ILog`.
+- `Axl.Base.Common`: For encryption, hardware hashes, and cleanup utilities.
+- `Axl.Base.Interfaces`: For `IJson` and `ILog`.

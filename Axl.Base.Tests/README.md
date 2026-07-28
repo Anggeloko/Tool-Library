@@ -1,24 +1,24 @@
 # Tools.Tests
 
-Proyecto centralizado de pruebas unitarias y de integración para todo el ecosistema.
+Centralized unit and integration testing project for the entire ecosystem.
 
 ## Prerequisites
 - **Framework:** .NET Framework 4.7.2 (Para compatibilidad con todos los módulos).
 
-## Dependencias de NuGet
+## NuGet Dependencies
 - `NUnit` (v3.13.3)
 - `Moq` (v4.0.10827)
 - `NUnit3TestAdapter`
 
-## Dependencias Internas
+## Internal Dependencies
 - Referencias directas a todos los proyectos `Tools.*` para garantizar la cobertura total.
 
-## Cobertura de Pruebas
+## Test Coverage
 - Pruebas de lógica de negocio (Common, Metrics).
 - Pruebas de integración simulada (Bases de Datos con Moq).
 - Pruebas funcionales de protocolos (MQTT, SNMP, WMI, OPC).
 
-## Ejemplo de Estructura de Test
+## Test Structure Example
 
 ```csharp
 [TestFixture]

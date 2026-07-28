@@ -1,46 +1,46 @@
 # Axl.Base.Compression.Native
 
-Librería de compresión ligera y segura basada únicamente en `System.IO.Compression` nativo de .NET.
+Lightweight and secure compression library built solely on native .NET `System.IO.Compression`.
 
-## Características
-- **Cero Dependencias Externas**: Sin vulnerabilidades de terceros (no usa SharpCompress).
-- **Target**: .NET Framework 4.5.2 o superior.
-- **Seguridad**: Totalmente compatible con políticas de seguridad estrictas.
+## Features
+- **Zero External Dependencies**: Free of third-party vulnerabilities (does not use SharpCompress).
+- **Target**: .NET Framework 4.5.2 or higher.
+- **Security**: Fully compliant with strict corporate security policies.
 
-## Uso Básico
+## Basic Usage
 
-### Inyección de Dependencia
-La librería implementa la interfaz común `ICompressionService`.
+### Dependency Injection
+The library implements the common `ICompressionService` interface.
 
 ```csharp
 ICompressionService compressor = new NativeCompressionService(log);
 ```
 
-### Compresión
-Soporta compresión Zip nativa y emulación de otros formatos (Tar, 7z) mediante el cambio de extensión.
+### Compression
+Supports native Zip compression and emulation for other formats (Tar, 7z) via extension aliasing.
 
 ```csharp
 var files = new[] { "data1.txt", "data2.txt" };
 compressor.Compress(files, "archive.zip", CompressionFormat.Zip);
 
-// Emulación para fines transaccionales
+// Emulation for transactional purposes
 compressor.Compress(files, "archive.7z", CompressionFormat.SevenZip);
 ```
 
-### Descompresión
-Detecta automáticamente el formato (Zip o GZip) para la extracción.
+### Decompression
+Automatically detects format (Zip or GZip) for extraction.
 
 ```csharp
 var extracted = compressor.Decompress("archive.zip", "C:\\Extracted");
 ```
 
-## Formatos Soportados
-| Formato | Método | Notas |
+## Supported Formats
+| Format | Method | Notes |
 | :--- | :--- | :--- |
-| **Zip** | Nativo | Soporte completo para múltiples archivos. |
-| **GZip** | Nativo | Recomendado para compresión de flujo único. |
-| **7z / Tar / Tgz** | Emulado | Estructura interna Zip con extensión personalizada. |
+| **Zip** | Native | Full support for multiple files. |
+| **GZip** | Native | Recommended for single stream compression. |
+| **7z / Tar / Tgz** | Emulated | Internal Zip structure with custom extension. |
 
-## Limitaciones
-- **Passwords**: No soportado nativamente por `System.IO.Compression`. El parámetro `password` es ignorado con un log de advertencia.
-- **Rar**: No soportado (requiere librerías propietarias o de terceros).
+## Limitations
+- **Passwords**: Not natively supported by `System.IO.Compression`. The `password` parameter is ignored with a warning log.
+- **Rar**: Not supported (requires third-party or proprietary libraries).

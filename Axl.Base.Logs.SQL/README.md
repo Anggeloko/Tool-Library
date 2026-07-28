@@ -1,15 +1,15 @@
 # Tools.Logs.SQL
 
-Extensión de logging para persistencia en base de datos.
+Logging extension for database persistence.
 
 ## Prerequisites
 - **Framework:** .NET Framework 4.5.2.
 
 ## Technical Reference (API)
 
-### Clase `SQLog`
+### Class `SQLog`
 
-Implementa `ILog` y requiere una instancia de `ISql` para funcionar.
+Implements `ILog` and requires an `ISql` instance to operate.
 
 #### Usage Example
 
@@ -19,18 +19,18 @@ IJson json = new NewtonJson();
 
 ILog sqlLog = new SQLog(json, db, "app_logs");
 
-sqlLog.Write("Evento registrado en SQL");
+sqlLog.Write("Event logged into SQL");
 ```
 
 #### Constructor: `SQLog(ISql sqlService, string table = "logs")`
-- **Parámetros:**
-  - `sqlService`: Cualquier implementación de `ISql` (`MSSQL`, `MySQL`, `SQLite`).
-  - `table`: Nombre de la tabla donde se insertarán los registros.
+- **Parameters:**
+  - `sqlService`: Any `ISql` implementation (`MSSQL`, `MySQL`, `SQLite`).
+  - `table`: Name of the database table where log entries will be inserted.
 
-#### Funcionalidad
-Cada vez que se llama a `Write` o sus variantes, se ejecuta una inserción asíncrona en la base de datos con los campos:
-- `Timestamp`: Fecha y hora.
+#### Functionality
+Whenever `Write` or any of its variations is called, an asynchronous insertion into the database is executed containing the fields:
+- `Timestamp`: Date and time.
 - `Level`: `INFO`, `ERROR`, `WARN`, `DEBUG`.
-- `Caller`: Nombre del método emisor.
-- `Message`: Contenido del log.
-- `Exception`: Detalles de la excepción si existen.
+- `Caller`: Name of the issuing method.
+- `Message`: Log entry content.
+- `Exception`: Details of exception if present.

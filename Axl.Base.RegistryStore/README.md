@@ -1,15 +1,15 @@
 # Axl.Base.RegistryStore
 
-Librería de almacenamiento seguro de secretos y contraseñas cifradas en el Registro de Windows usando DPAPI a nivel de máquina.
+Library for secure storage of DPAPI-encrypted machine-level secrets and passwords in the Windows Registry.
 
 ## Prerequisites
-- **Framework:** .NET Framework 4.0 o superior.
-- **Dependencies:** `System.Security` para el cifrado por DPAPI (`ProtectedData`).
+- **Framework:** .NET Framework 4.0 or higher.
+- **Dependencies:** `System.Security` for DPAPI encryption (`ProtectedData`).
 
 ## Technical Reference (API)
 
-### Interfaz `ISecretStore`
-Contrato estándar expuesto por `Axl.Base.Interfaces` para la inyección de dependencias y desacoplamiento del almacenamiento.
+### Interface `ISecretStore`
+Standard contract exposed by `Axl.Base.Interfaces` for dependency injection and storage decoupling.
 
 ```csharp
 public interface ISecretStore
@@ -24,57 +24,57 @@ public interface ISecretStore
 
 ---
 
-### Clase `SecretValue`
-Clase envoltorio para datos sensibles que se asegura de sobrescribir los bytes internos con ceros cuando se destruye o se libera.
+### Class `SecretValue`
+Wrapper class for sensitive data that ensures internal byte arrays are overwritten with zeroes upon destruction or disposal.
 
-- **Métodos:**
-  - `SecretValue(string secretText)`: Crea la instancia a partir de un string.
-  - `SecretValue(byte[] utf8Bytes)`: Crea la instancia a partir de un array de bytes.
-  - `GetString()`: Decodifica y retorna el secreto en formato string.
-  - `GetBytes()`: Retorna una copia del array de bytes subyacente.
-  - `Dispose()`: Limpia y llena con ceros el array de bytes interno.
+- **Methods:**
+  - `SecretValue(string secretText)`: Creates instance from a string.
+  - `SecretValue(byte[] utf8Bytes)`: Creates instance from a byte array.
+  - `GetString()`: Decodes and returns the secret as a string.
+  - `GetBytes()`: Returns a copy of the underlying byte array.
+  - `Dispose()`: Clears and zero-fills internal byte arrays.
 
 ---
 
-### Clase `RegistryKeyStore`
-Implementa `ISecretStore` y maneja la escritura física en claves del Registro bajo `HKLM` (Registry 64-bit), además de gestionar automáticamente los permisos (ACLs) de lectura y escritura de Windows.
+### Class `RegistryKeyStore`
+Implements `ISecretStore` and handles physical writing to Registry keys under `HKLM` (64-bit Registry), automatically managing Windows read/write permissions (ACLs).
 
-#### Usage Example (Instalador / Proceso Elevado)
-Cifra y guarda una clave de API, otorgando permisos de solo lectura para la cuenta de servicio local `.\MikeUser`.
+#### Usage Example (Installer / Elevated Process)
+Encrypts and stores an API key, granting read-only permissions to local service account `.\MikeUser`.
 ```csharp
 using Axl.Base.Interfaces;
 using Axl.Base.Models;
 using Axl.Base.RegistryStore.Services;
 
-// Paso de inicialización (Requiere ejecutarse como Administrador)
+// Initialization step (Requires running as Administrator)
 ISecretStore store = new RegistryKeyStore(@"SOFTWARE\SchneiderElectric\ServiceManager", null, @".\MikeUser");
 
-// Almacenar secreto de forma segura usando SecretValue
+// Securely store secret using SecretValue
 using (var secret = new SecretValue("SuperSecurePassword123!"))
 {
     store.StoreSecret("DatabaseConnectionString", secret);
 }
 ```
 
-#### Usage Example (Servicio de Fondo / Proceso de lectura)
-El servicio que se ejecuta bajo la cuenta `.\MikeUser` puede leer la clave sin necesidad de privilegios elevados de Administrador ni de conocer el secreto del cifrado:
+#### Usage Example (Background Service / Reader Process)
+The service running under the `.\MikeUser` account can read the key without requiring elevated Administrator privileges or knowing DPAPI entropy secrets:
 ```csharp
 ISecretStore store = new RegistryKeyStore(@"SOFTWARE\SchneiderElectric\ServiceManager");
 
 using (SecretValue secret = store.RetrieveSecretSecure("DatabaseConnectionString"))
 {
     string connString = secret.GetString();
-    // Uso de la conexión...
-} // El destructor/Dispose limpia automáticamente el buffer de memoria
+    // Connection usage...
+} // Disposal automatically zeroes out the memory buffer
 ```
 
 #### `RegistryKeyStore(string registryPath, byte[] entropy = null, string serviceAccountName = null)`
-- **Parámetros:**
-  - `registryPath`: La ruta de la clave en HKLM (ej. `SOFTWARE\MiCompania\App`).
-  - `entropy`: Array de bytes opcional que agrega una capa adicional de secreto al cifrado DPAPI local. Debe coincidir al escribir y leer.
-  - `serviceAccountName`: Nombre de la cuenta (ej. `.\ServiceUser` o `MYDOMAIN\User`) que obtendrá permisos explícitamente de lectura en la clave del Registro.
+- **Parameters:**
+  - `registryPath`: The Registry key path under HKLM (e.g. `SOFTWARE\MyCompany\App`).
+  - `entropy`: Optional byte array adding an extra layer of secrecy to local DPAPI encryption. Must match when writing and reading.
+  - `serviceAccountName`: Account name (e.g. `.\ServiceUser` or `MYDOMAIN\User`) that will explicitly receive read permissions on the Registry key.
 
 #### `void DeleteStoreTree()`
-Elimina recursivamente todo el árbol de subclaves de este almacén bajo HKLM.
+Recursively deletes the entire subkey tree of this store under HKLM.
 > [!IMPORTANT]
-> Este método contiene medidas de seguridad (guardrails) y arrojará un `SecurityException` si la ruta del registro es demasiado corta o no empieza por `SOFTWARE` (requiere al menos 3 niveles de profundidad, por ejemplo, `SOFTWARE\Company\App`), para evitar borrados accidentales de ramas clave del sistema.
+> This method includes security guardrails and will throw a `SecurityException` if the registry path is too short or does not start with `SOFTWARE` (requires at least 3 levels of depth, e.g., `SOFTWARE\Company\App`), preventing accidental deletion of critical system branches.
