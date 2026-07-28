@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net461</TargetFramework>
+    <RootNamespace>Axl.Base.Database.Postgres</RootNamespace>
+    <AssemblyName>Axl.Base.Database.Postgres</AssemblyName>
+    
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Axl.Base.Database.Postgres</PackageId>
+    <Version>1.0.4</Version>
+    <Authors>Axl</Authors>
+    <Description>Database access components for PostgreSQL integration.</Description>
+    <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="4.1.13" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+  </ItemGroup>
+</Project>

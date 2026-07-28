@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net40;net45</TargetFrameworks>
+    <RootNamespace>Axl.Base.Persistence</RootNamespace>
+    <AssemblyName>Axl.Base.Persistence</AssemblyName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Axl.Base.Persistence</PackageId>
+    <Version>1.0.3</Version>
+    <Authors>Axl</Authors>
+    <Description>Library for encrypted and compressed local variable persistence.</Description>
+    <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net452</TargetFramework>
+    <RootNamespace>Axl.Base.NetworkFileAccess</RootNamespace>
+    <AssemblyName>Axl.Base.NetworkFileAccess</AssemblyName>
+    
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Axl.Base.NetworkFileAccess</PackageId>
+    <Version>1.0.2</Version>
+    <Authors>Axl</Authors>
+    <Description>Library for secure network file access using impersonation and UNC paths.</Description>
+    <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+  </ItemGroup>
+</Project>
+

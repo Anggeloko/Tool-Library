@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net40;net45</TargetFrameworks>
+    <RootNamespace>Axl.Base.Background</RootNamespace>
+    <AssemblyName>Axl.Base.Background</AssemblyName>
+    
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Axl.Base.Background</PackageId>
+    <Version>1.1.4</Version>
+    <Authors>Axl</Authors>
+    <Description>Library for managing background tasks and services.</Description>
+    <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
+    <PackageReference Include="Microsoft.Bcl.Async" Version="1.0.168" />
+  </ItemGroup>
+</Project>
+

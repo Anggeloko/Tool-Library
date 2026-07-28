@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net452</TargetFramework>
+    <RootNamespace>Axl.Base.Sftp</RootNamespace>
+    <AssemblyName>Axl.Base.Sftp</AssemblyName>
+    
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Axl.Base.Sftp</PackageId>
+    <Version>1.1.2</Version>
+    <Authors>Axl</Authors>
+    <Description>Library for SFTP operations based on SSH.NET.</Description>
+    <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SSH.NET" Version="2020.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+  </ItemGroup>
+</Project>
+

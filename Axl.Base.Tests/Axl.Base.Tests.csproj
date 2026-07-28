@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <RootNamespace>Axl.Base.Tests</RootNamespace>
+    <AssemblyName>Axl.Base.Tests</AssemblyName>
+    <OutputType>Library</OutputType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <IsPackable>false</IsPackable>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Moq" Version="4.18.4" />
+    <PackageReference Include="NUnit" Version="3.13.3" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.4.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+    <ProjectReference Include="..\Axl.Base.Snmp\Axl.Base.Snmp.csproj" />
+    <ProjectReference Include="..\Axl.Base.Icmp\Axl.Base.Icmp.csproj" />
+    <ProjectReference Include="..\Axl.Base.Mqtt\Axl.Base.Mqtt.csproj" />
+    <ProjectReference Include="..\Axl.Base.OpcDa\Axl.Base.OpcDa.csproj" />
+    <ProjectReference Include="..\Axl.Base.Database.SQLite\Axl.Base.Database.SQLite.csproj" />
+    <ProjectReference Include="..\Axl.Base.Wmi\Axl.Base.Wmi.csproj" />
+    <ProjectReference Include="..\Axl.Base.Json.Legacy\Axl.Base.Json.Legacy.csproj" />
+    <ProjectReference Include="..\Axl.Base.Logs\Axl.Base.Logs.csproj" />
+    <ProjectReference Include="..\Axl.Base.Logs.SQL\Axl.Base.Logs.SQL.csproj" />
+    <ProjectReference Include="..\Axl.Base.Database.MSSQL\Axl.Base.Database.MSSQL.csproj" />
+    <ProjectReference Include="..\Axl.Base.Database.MySQL\Axl.Base.Database.MySQL.csproj" />
+    <ProjectReference Include="..\Axl.Base.OpcUa\Axl.Base.OpcUa.csproj" />
+    <ProjectReference Include="..\Axl.Base.MqttNet\Axl.Base.MqttNet.csproj" />
+    <ProjectReference Include="..\Axl.Base.Json.Newton\Axl.Base.Json.Newton.csproj" />
+    <ProjectReference Include="..\Axl.Base.Background\Axl.Base.Background.csproj" />
+    <ProjectReference Include="..\Axl.Base.Excel\Axl.Base.Excel.csproj" />
+    <ProjectReference Include="..\Axl.Base.Sftp\Axl.Base.Sftp.csproj" />
+    <ProjectReference Include="..\Axl.Base.Http\Axl.Base.Http.csproj" />
+    <ProjectReference Include="..\Axl.Base.NetworkFileAccess\Axl.Base.NetworkFileAccess.csproj" />
+    <ProjectReference Include="..\Axl.Base.Omdb\Axl.Base.Omdb.csproj" />
+    <ProjectReference Include="..\Axl.Base.Database.Postgres\Axl.Base.Database.Postgres.csproj" />
+    <ProjectReference Include="..\Axl.Base.Compression.Native\Axl.Base.Compression.Native.csproj" />
+    <ProjectReference Include="..\Axl.Base.Historian.WW\Axl.Base.Historian.WW.csproj" />
+    <ProjectReference Include="..\Axl.Base.Persistence\Axl.Base.Persistence.csproj" />
+    <ProjectReference Include="..\Axl.Base.RegistryStore\Axl.Base.RegistryStore.csproj" />
+    <ProjectReference Include="..\Axl.Base.Security.Cache\Axl.Base.Security.Cache.csproj" />
+    <ProjectReference Include="..\Axl.Base.Ilo\Axl.Base.Ilo.csproj" />
+  </ItemGroup>
+</Project>
+

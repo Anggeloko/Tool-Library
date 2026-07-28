@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net40</TargetFramework>
+    <RootNamespace>Axl.Base.Snmp</RootNamespace>
+    <AssemblyName>Axl.Base.Snmp</AssemblyName>
+    
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Axl.Base.Snmp</PackageId>
+    <Version>1.1.2</Version>
+    <Authors>Axl</Authors>
+    <Description>SNMP protocol manipulation and network management library.</Description>
+    <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SnmpSharpNet" Version="0.9.7" />
+  </ItemGroup>
+</Project>
+
+

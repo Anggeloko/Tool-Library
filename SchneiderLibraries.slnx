@@ -1,0 +1,62 @@
+<Solution>
+  <Folder Name="/Docs/">
+    <File Path="Docs/Axl.Base.Background.md" />
+    <File Path="Docs/Axl.Base.Common.md" />
+    <File Path="Docs/Axl.Base.Compression.Native.md" />
+    <File Path="Docs/Axl.Base.Database.MSSQL.md" />
+    <File Path="Docs/Axl.Base.Database.MySQL.md" />
+    <File Path="Docs/Axl.Base.Database.Postgres.md" />
+    <File Path="Docs/Axl.Base.Database.SQLite.md" />
+    <File Path="Docs/Axl.Base.Excel.md" />
+    <File Path="Docs/Axl.Base.Http.md" />
+    <File Path="Docs/Axl.Base.Icmp.md" />
+    <File Path="Docs/Axl.Base.Json.Legacy.md" />
+    <File Path="Docs/Axl.Base.Json.Newton.md" />
+    <File Path="Docs/Axl.Base.Logs.md" />
+    <File Path="Docs/Axl.Base.Logs.SQL.md" />
+    <File Path="Docs/Axl.Base.Mqtt.md" />
+    <File Path="Docs/Axl.Base.MqttNet.md" />
+    <File Path="Docs/Axl.Base.NetworkFileAccess.md" />
+    <File Path="Docs/Axl.Base.Omdb.md" />
+    <File Path="Docs/Axl.Base.OpcDa.md" />
+    <File Path="Docs/Axl.Base.OpcUa.md" />
+    <File Path="Docs/Axl.Base.Sftp.md" />
+    <File Path="Docs/Axl.Base.Snmp.md" />
+    <File Path="Docs/Axl.Base.Wmi.md" />
+    <File Path="Docs/Axl.Base.Tests.md" />
+    <File Path="Docs/Axl.Base.Persistence.md" />
+    <File Path="Docs/Axl.Base.RegistryStore.md" />
+    <File Path="Docs/Axl.Base.Security.Cache.md" />
+    <File Path="Docs/Axl.Base.Ilo.md" />
+  </Folder>
+  <Project Path="Axl.Base.Background/Axl.Base.Background.csproj" />
+  <Project Path="Axl.Base.Common/Axl.Base.Common.csproj" />
+  <Project Path="Axl.Base.Compression.Native/Axl.Base.Compression.Native.csproj" />
+  <Project Path="Axl.Base.Database.MSSQL/Axl.Base.Database.MSSQL.csproj" />
+  <Project Path="Axl.Base.Database.MySQL/Axl.Base.Database.MySQL.csproj" />
+  <Project Path="Axl.Base.Database.Postgres/Axl.Base.Database.Postgres.csproj" />
+  <Project Path="Axl.Base.Database.SQLite/Axl.Base.Database.SQLite.csproj" />
+  <Project Path="Axl.Base.Excel/Axl.Base.Excel.csproj" />
+  <Project Path="Axl.Base.Historian.WW/Axl.Base.Historian.WW.csproj" />
+  <Project Path="Axl.Base.Http/Axl.Base.Http.csproj" />
+  <Project Path="Axl.Base.Icmp/Axl.Base.Icmp.csproj" />
+  <Project Path="Axl.Base.Ilo/Axl.Base.Ilo.csproj" />
+  <Project Path="Axl.Base.Json.Legacy/Axl.Base.Json.Legacy.csproj" />
+  <Project Path="Axl.Base.Json.Newton/Axl.Base.Json.Newton.csproj" />
+  <Project Path="Axl.Base.Logs/Axl.Base.Logs.csproj" />
+  <Project Path="Axl.Base.Logs.SQL/Axl.Base.Logs.SQL.csproj" />
+  <Project Path="Axl.Base.Mqtt/Axl.Base.Mqtt.csproj" />
+  <Project Path="Axl.Base.MqttNet/Axl.Base.MqttNet.csproj" />
+  <Project Path="Axl.Base.NetworkFileAccess/Axl.Base.NetworkFileAccess.csproj" />
+  <Project Path="Axl.Base.Omdb/Axl.Base.Omdb.csproj" />
+  <Project Path="Axl.Base.OpcDa/Axl.Base.OpcDa.csproj" />
+  <Project Path="Axl.Base.OpcUa/Axl.Base.OpcUa.csproj" />
+  <Project Path="Axl.Base.Persistence/Axl.Base.Persistence.csproj" />
+  <Project Path="Axl.Base.RegistryStore/Axl.Base.RegistryStore.csproj" />
+  <Project Path="Axl.Base.Security.Cache/Axl.Base.Security.Cache.csproj" />
+  <Project Path="Axl.Base.Sftp/Axl.Base.Sftp.csproj" />
+  <Project Path="Axl.Base.Snmp/Axl.Base.Snmp.csproj" />
+  <Project Path="Axl.Base.Tests/Axl.Base.Tests.csproj" Id="a1b2c3d4-e5f6-4321-8765-098765432109" />
+  <Project Path="Axl.Base.Wmi/Axl.Base.Wmi.csproj" />
+</Solution>
+

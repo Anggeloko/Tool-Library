@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net40</TargetFramework>
+    <RootNamespace>Axl.Base.Icmp</RootNamespace>
+    <AssemblyName>Axl.Base.Icmp</AssemblyName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Axl.Base.Icmp</PackageId>
+    <Version>1.1.4</Version>
+    <Authors>Axl</Authors>
+    <Description>Network diagnostic tools and ICMP protocol utilities.</Description>
+    <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+  </ItemGroup>
+</Project>
+
+

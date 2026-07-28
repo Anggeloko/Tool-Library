@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net40</TargetFramework>
+    <RootNamespace>Axl.Base.Database.SQLite</RootNamespace>
+    <AssemblyName>Axl.Base.Database.SQLite</AssemblyName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Axl.Base.Database.SQLite</PackageId>
+    <Version>1.1.7</Version>
+    <Authors>Axl</Authors>
+    <Description>Database access components for SQLite integration with self-extracting native interop DLLs.</Description>
+    <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Stub.System.Data.SQLite.Core.NetFramework" Version="1.0.119.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\x86\SQLite.Interop.dll" />
+    <EmbeddedResource Include="Resources\x64\SQLite.Interop.dll" />
+  </ItemGroup>
+</Project>
+
+
