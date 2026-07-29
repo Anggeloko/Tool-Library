@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Threading.Tasks;
 using Axl.Base.Interfaces;
 using Axl.Base.Statics;
@@ -50,12 +50,18 @@ namespace Axl.Base.Background
             _timer.Stop();
         }
 
+        private readonly object _execLock = new object();
+        private bool _isExecuting;
+
         private async void OnElapsed(object sender, ElapsedEventArgs e)
         {
-            // Intentamos obtener el bloqueo exclusivo de forma inmediata (0ms de espera)
-            if (!TrafficControl.TryStartExclusiveHeavy(Name, 0))
+            lock (_execLock)
             {
-                return; // Ya está corriendo o el recurso está ocupado
+                if (_isExecuting)
+                {
+                    return; // Si ya se está ejecutando el ciclo anterior, ignoramos el evento
+                }
+                _isExecuting = true;
             }
 
             _isRunning = true;
@@ -82,7 +88,10 @@ namespace Axl.Base.Background
                 Log?.Info($"[{Name}] END");
 
                 _isRunning = false;
-                TrafficControl.StopExclusiveHeavy(Name);
+                lock (_execLock)
+                {
+                    _isExecuting = false;
+                }
 
                 if (IntervalProvider != null)
                 {
