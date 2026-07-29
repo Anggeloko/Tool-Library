@@ -28,6 +28,8 @@
     <File Path="Docs/Axl.Base.RegistryStore.md" />
     <File Path="Docs/Axl.Base.Security.Cache.md" />
     <File Path="Docs/Axl.Base.Ilo.md" />
+    <File Path="Docs/Axl.Base.Orchestrator.Scheduler.md" />
+    <File Path="Docs/Axl.Base.Orchestrator.Mqtt.md" />
   </Folder>
   <Project Path="Axl.Base.Background/Axl.Base.Background.csproj" />
   <Project Path="Axl.Base.Common/Axl.Base.Common.csproj" />
@@ -51,6 +53,8 @@
   <Project Path="Axl.Base.Omdb/Axl.Base.Omdb.csproj" />
   <Project Path="Axl.Base.OpcDa/Axl.Base.OpcDa.csproj" />
   <Project Path="Axl.Base.OpcUa/Axl.Base.OpcUa.csproj" />
+  <Project Path="Axl.Base.Orchestrator.Mqtt/Axl.Base.Orchestrator.Mqtt.csproj" />
+  <Project Path="Axl.Base.Orchestrator.Scheduler/Axl.Base.Orchestrator.Scheduler.csproj" />
   <Project Path="Axl.Base.Persistence/Axl.Base.Persistence.csproj" />
   <Project Path="Axl.Base.RegistryStore/Axl.Base.RegistryStore.csproj" />
   <Project Path="Axl.Base.Security.Cache/Axl.Base.Security.Cache.csproj" />

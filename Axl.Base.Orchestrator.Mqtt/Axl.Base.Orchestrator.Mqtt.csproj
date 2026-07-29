@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net40;net45</TargetFrameworks>
+    <RootNamespace>Axl.Base.Orchestrator.Mqtt</RootNamespace>
+    <AssemblyName>Axl.Base.Orchestrator.Mqtt</AssemblyName>
+    
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Axl.Base.Orchestrator.Mqtt</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>Axl</Authors>
+    <Description>Orchestration library for dynamic MQTT topic routing, auto-subscription, and reconnection resilience compatible with legacy and modern MQTT implementations.</Description>
+    <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
+    <PackageReference Include="Microsoft.Bcl.Async" Version="1.0.168" />
+  </ItemGroup>
+</Project>
