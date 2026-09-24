@@ -6,7 +6,7 @@
     
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Axl.Base.Database.MySQL</PackageId>
-    <Version>1.1.10</Version>
+    <Version>1.1.12</Version>
     <Authors>Axl</Authors>
     <Description>Database access components for MySQL integration.</Description>
     <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>

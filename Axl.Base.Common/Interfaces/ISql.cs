@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
 using Axl.Base.Models;
@@ -23,6 +23,8 @@ namespace Axl.Base.Interfaces
         Task<Result<int>> BulkInsert<T>(string tableName, IEnumerable<T> data) where T : new();
         Task<Result<int>> PrepareAndBulkInsert(string tableName, DataTable data, bool truncateIfExists = true);
         Task<Result<int>> Upsert<T>(string tableName, IEnumerable<T> data, string[] keyColumns) where T : new();
+        Task<Result<int>> BulkMerge(DataTable dataTable, string destinationTable, string[] keyColumns, string[] updateColumns = null, string[] ignoreColumns = null, int batchSize = 10000, int? timeoutSeconds = null);
+        Task<Result<int>> BulkMerge<T>(string destinationTable, IEnumerable<T> data, string[] keyColumns, string[] updateColumns = null, string[] ignoreColumns = null, int batchSize = 10000, int? timeoutSeconds = null) where T : new();
     }
 }
 

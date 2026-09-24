@@ -373,6 +373,113 @@ namespace Axl.Base.Database.Postgres
             }
         }
 
+        public async Task<Result<int>> BulkMerge<T>(string destinationTable, IEnumerable<T> data, string[] keyColumns, string[] updateColumns = null, string[] ignoreColumns = null, int batchSize = 10000, int? timeoutSeconds = null) where T : new()
+        {
+            if (data == null || !data.Any()) return Result<int>.Success(0);
+            return await BulkMerge(data.ToDataTable(), destinationTable, keyColumns, updateColumns, ignoreColumns, batchSize, timeoutSeconds);
+        }
+
+        public async Task<Result<int>> BulkMerge(DataTable dataTable, string destinationTable, string[] keyColumns, string[] updateColumns = null, string[] ignoreColumns = null, int batchSize = 10000, int? timeoutSeconds = null)
+        {
+            if (dataTable == null || dataTable.Rows.Count == 0) return Result<int>.Success(0);
+            if (keyColumns == null || keyColumns.Length == 0)
+                return Result<int>.Failure("Debe especificar al menos una columna clave para el cruce del MERGE.");
+
+            int effectiveTimeout = timeoutSeconds ?? Math.Max(_commandTimeout * 3, 600);
+            string stagingTable = $"tmp_merge_{Guid.NewGuid():N}";
+            string cleanDestination = destinationTable.Replace("\"", "");
+
+            try
+            {
+                // 1. Filtrar las columnas a procesar (excluyendo las especificadas en ignoreColumns)
+                var validColumns = dataTable.Columns.Cast<DataColumn>()
+                    .Select(c => c.ColumnName)
+                    .Where(c => ignoreColumns == null || !ignoreColumns.Contains(c, StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (validColumns.Count == 0)
+                    return Result<int>.Failure("No hay columnas válidas para realizar el BulkMerge.");
+
+                using (var connection = await CreateOpenConnectionAsync())
+                {
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        try
+                        {
+                            // 2. Crear tabla temporal con las columnas requeridas basada en la tabla destino
+                            string colsList = string.Join(", ", validColumns.Select(c => $"\"{c}\""));
+                            var createSql = $"CREATE TEMPORARY TABLE {stagingTable} AS SELECT {colsList} FROM \"{cleanDestination}\" WHERE 1=0;";
+                            using (var createCmd = new NpgsqlCommand(createSql, connection, transaction))
+                            {
+                                createCmd.CommandTimeout = effectiveTimeout;
+                                await createCmd.ExecuteNonQueryAsync();
+                            }
+
+                            // 3. Cargar datos vía Binary Copy
+                            var copySql = $"COPY {stagingTable} ({colsList}) FROM STDIN (FORMAT BINARY)";
+                            using (var writer = connection.BeginBinaryImport(copySql))
+                            {
+                                foreach (DataRow row in dataTable.Rows)
+                                {
+                                    writer.StartRow();
+                                    foreach (var colName in validColumns)
+                                    {
+                                        writer.Write(row[colName] ?? DBNull.Value);
+                                    }
+                                }
+                                writer.Complete();
+                            }
+
+                            // 4. Ejecutar el MERGE/UPSERT masivo
+                            var colsToUpdate = (updateColumns ?? validColumns.Except(keyColumns, StringComparer.OrdinalIgnoreCase)).ToList();
+                            var updateParts = colsToUpdate.Select(c => $"\"{c}\" = EXCLUDED.\"{c}\"").ToList();
+                            var matchCondition = string.Join(", ", keyColumns.Select(c => $"\"{c}\""));
+
+                            var upsertSql = new StringBuilder();
+                            upsertSql.Append($"INSERT INTO \"{cleanDestination}\" ({colsList}) ");
+                            upsertSql.Append($"SELECT {colsList} FROM {stagingTable} ");
+                            upsertSql.Append($"ON CONFLICT ({matchCondition}) ");
+
+                            if (updateParts.Any())
+                            {
+                                upsertSql.Append($"DO UPDATE SET {string.Join(", ", updateParts)};");
+                            }
+                            else
+                            {
+                                upsertSql.Append("DO NOTHING;");
+                            }
+
+                            int affectedRows = 0;
+                            using (var upsertCmd = new NpgsqlCommand(upsertSql.ToString(), connection, transaction))
+                            {
+                                upsertCmd.CommandTimeout = effectiveTimeout;
+                                affectedRows = await upsertCmd.ExecuteNonQueryAsync();
+                            }
+
+                            // 5. Eliminar tabla temporal y confirmar transacción
+                            using (var dropCmd = new NpgsqlCommand($"DROP TABLE IF EXISTS {stagingTable};", connection, transaction))
+                            {
+                                dropCmd.CommandTimeout = effectiveTimeout;
+                                await dropCmd.ExecuteNonQueryAsync();
+                            }
+
+                            transaction.Commit();
+                            return Result<int>.Success(affectedRows);
+                        }
+                        catch (Exception ex)
+                        {
+                            try { transaction.Rollback(); } catch { }
+                            return Result<int>.Failure(ExceptionUtils.Format(ex, $"BulkMerge-Transaction-{destinationTable}"));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Result<int>.Failure(ExceptionUtils.Format(ex, $"BulkMerge-{destinationTable}"));
+            }
+        }
+
         private async Task BulkInsertInternal(string tableName, DataTable data, NpgsqlConnection connection)
         {
             var columns = data.Columns.Cast<DataColumn>().Select(c => $"\"{c.ColumnName}\"").ToList();

@@ -481,6 +481,144 @@ namespace Axl.Base.Database.MySQL
             }
         }
 
+        public async Task<Result<int>> BulkMerge<T>(string destinationTable, IEnumerable<T> data, string[] keyColumns, string[] updateColumns = null, string[] ignoreColumns = null, int batchSize = 10000, int? timeoutSeconds = null) where T : new()
+        {
+            if (data == null || !data.Any()) return Result<int>.Success(0);
+            return await BulkMerge(data.ToDataTable(), destinationTable, keyColumns, updateColumns, ignoreColumns, batchSize, timeoutSeconds);
+        }
+
+        public async Task<Result<int>> BulkMerge(DataTable dataTable, string destinationTable, string[] keyColumns, string[] updateColumns = null, string[] ignoreColumns = null, int batchSize = 10000, int? timeoutSeconds = null)
+        {
+            if (dataTable == null || dataTable.Rows.Count == 0) return Result<int>.Success(0);
+            if (keyColumns == null || keyColumns.Length == 0)
+                return Result<int>.Failure("Debe especificar al menos una columna clave para el cruce del MERGE.");
+
+            int effectiveTimeout = timeoutSeconds ?? Math.Max(_commandTimeout * 3, 600);
+            string stagingTable = $"tmp_merge_{Guid.NewGuid():N}";
+            string cleanDestination = destinationTable.Replace("`", "");
+
+            try
+            {
+                // 1. Filtrar las columnas a procesar (excluyendo las especificadas en ignoreColumns)
+                var validColumns = dataTable.Columns.Cast<DataColumn>()
+                    .Select(c => c.ColumnName)
+                    .Where(c => ignoreColumns == null || !ignoreColumns.Contains(c, StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (validColumns.Count == 0)
+                    return Result<int>.Failure("No hay columnas válidas para realizar el BulkMerge.");
+
+                using (var connection = await CreateOpenConnectionAsync())
+                {
+                    using (var transaction = await connection.BeginTransactionAsync())
+                    {
+                        try
+                        {
+                            // 2. Crear tabla temporal igual a la estructura de las columnas requeridas
+                            string colsList = string.Join(", ", validColumns.Select(c => $"`{c}`"));
+                            var createTableSql = $"CREATE TEMPORARY TABLE `{stagingTable}` SELECT {colsList} FROM `{cleanDestination}` WHERE 1=0";
+                            using (var createCmd = new MySqlCommand(createTableSql, connection, transaction))
+                            {
+                                createCmd.CommandTimeout = effectiveTimeout;
+                                await createCmd.ExecuteNonQueryAsync();
+                            }
+
+                            // 3. Cargar datos en la tabla temporal en lotes respetando batchSize y límite de parámetros
+                            int batchCountLimit = Math.Min(batchSize, Math.Max(1, 60000 / validColumns.Count));
+                            int index = 0;
+                            while (index < dataTable.Rows.Count)
+                            {
+                                int currentBatchCount = Math.Min(batchCountLimit, dataTable.Rows.Count - index);
+                                var sqlBuilder = new StringBuilder();
+                                sqlBuilder.Append($"INSERT INTO `{stagingTable}` ({colsList}) VALUES ");
+
+                                using (var insertCmd = new MySqlCommand())
+                                {
+                                    insertCmd.Connection = connection;
+                                    insertCmd.Transaction = transaction;
+                                    insertCmd.CommandTimeout = effectiveTimeout;
+
+                                    var valueRows = new List<string>();
+                                    for (int rowIndex = 0; rowIndex < currentBatchCount; rowIndex++)
+                                    {
+                                        DataRow row = dataTable.Rows[index + rowIndex];
+                                        var paramNames = new List<string>();
+                                        for (int colIndex = 0; colIndex < validColumns.Count; colIndex++)
+                                        {
+                                            string colName = validColumns[colIndex];
+                                            string paramName = $"@p{rowIndex}_{colIndex}";
+                                            insertCmd.Parameters.AddWithValue(paramName, row[colName] ?? DBNull.Value);
+                                            paramNames.Add(paramName);
+                                        }
+                                        valueRows.Add($"({string.Join(", ", paramNames)})");
+                                    }
+
+                                    sqlBuilder.Append(string.Join(", ", valueRows));
+                                    sqlBuilder.Append(";");
+
+                                    insertCmd.CommandText = sqlBuilder.ToString();
+                                    await insertCmd.ExecuteNonQueryAsync();
+                                }
+                                index += currentBatchCount;
+                            }
+
+                            // 4. UPDATE JOIN
+                            var colsToUpdate = (updateColumns ?? validColumns.Except(keyColumns, StringComparer.OrdinalIgnoreCase)).ToList();
+                            var updateParts = colsToUpdate.Select(c => $"T.`{c}` = S.`{c}`").ToList();
+                            var matchCondition = string.Join(" AND ", keyColumns.Select(c => $"T.`{c}` = S.`{c}`"));
+
+                            int affectedRows = 0;
+                            if (updateParts.Any())
+                            {
+                                var updateSql = $@"
+                                    UPDATE `{cleanDestination}` AS T
+                                    INNER JOIN `{stagingTable}` AS S ON {matchCondition}
+                                    SET {string.Join(", ", updateParts)};";
+                                using (var updateCmd = new MySqlCommand(updateSql, connection, transaction))
+                                {
+                                    updateCmd.CommandTimeout = effectiveTimeout;
+                                    affectedRows += await updateCmd.ExecuteNonQueryAsync();
+                                }
+                            }
+
+                            // 5. INSERT (registros que no existen)
+                            var insertSql = $@"
+                                INSERT INTO `{cleanDestination}` ({colsList})
+                                SELECT {string.Join(", ", validColumns.Select(c => $"S.`{c}`"))}
+                                FROM `{stagingTable}` AS S
+                                LEFT JOIN `{cleanDestination}` AS T ON {matchCondition}
+                                WHERE T.`{keyColumns[0]}` IS NULL;";
+
+                            using (var insertCmd = new MySqlCommand(insertSql, connection, transaction))
+                            {
+                                insertCmd.CommandTimeout = effectiveTimeout;
+                                affectedRows += await insertCmd.ExecuteNonQueryAsync();
+                            }
+
+                            // 6. Eliminar tabla temporal y confirmar transacción
+                            using (var dropCmd = new MySqlCommand($"DROP TEMPORARY TABLE IF EXISTS `{stagingTable}`;", connection, transaction))
+                            {
+                                dropCmd.CommandTimeout = effectiveTimeout;
+                                await dropCmd.ExecuteNonQueryAsync();
+                            }
+
+                            await transaction.CommitAsync();
+                            return Result<int>.Success(affectedRows);
+                        }
+                        catch (Exception ex)
+                        {
+                            try { await transaction.RollbackAsync(); } catch { }
+                            return Result<int>.Failure(ExceptionUtils.Format(ex, $"BulkMerge-Transaction-{destinationTable}"));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Result<int>.Failure(ExceptionUtils.Format(ex, $"BulkMerge-{destinationTable}"));
+            }
+        }
+
         #endregion
 
         #region --- Implementación ICheckable ---

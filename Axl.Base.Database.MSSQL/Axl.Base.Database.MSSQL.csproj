@@ -6,7 +6,7 @@
     
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Axl.Base.Database.MSSQL</PackageId>
-    <Version>1.1.9</Version>
+    <Version>1.1.11</Version>
     <Authors>Axl</Authors>
     <Description>Database access components for Microsoft SQL Server integration.</Description>
     <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>

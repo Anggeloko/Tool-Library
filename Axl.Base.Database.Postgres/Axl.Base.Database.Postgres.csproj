@@ -6,7 +6,7 @@
     
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Axl.Base.Database.Postgres</PackageId>
-    <Version>1.0.4</Version>
+    <Version>1.0.6</Version>
     <Authors>Axl</Authors>
     <Description>Database access components for PostgreSQL integration.</Description>
     <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>

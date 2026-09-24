@@ -477,6 +477,116 @@ namespace Axl.Base.Database.msSQL
             }
         }
 
+        public async Task<Result<int>> BulkMerge<T>(string destinationTable, IEnumerable<T> data, string[] keyColumns, string[] updateColumns = null, string[] ignoreColumns = null, int batchSize = 10000, int? timeoutSeconds = null) where T : new()
+        {
+            if (data == null || !data.Any()) return Result<int>.Success(0);
+            return await BulkMerge(data.ToDataTable(), destinationTable, keyColumns, updateColumns, ignoreColumns, batchSize, timeoutSeconds);
+        }
+
+        public async Task<Result<int>> BulkMerge(DataTable dataTable, string destinationTable, string[] keyColumns, string[] updateColumns = null, string[] ignoreColumns = null, int batchSize = 10000, int? timeoutSeconds = null)
+        {
+            if (dataTable == null || dataTable.Rows.Count == 0) return Result<int>.Success(0);
+            if (keyColumns == null || keyColumns.Length == 0)
+                return Result<int>.Failure("Debe especificar al menos una columna clave para la condición ON del MERGE.");
+
+            int effectiveTimeout = timeoutSeconds ?? Math.Max(_commandTimeout * 3, 600);
+            string tempTableName = $"#TempMerge_{Guid.NewGuid():N}";
+            string cleanDestination = destinationTable.StartsWith("[") ? destinationTable : $"[{destinationTable.Replace(".", "].[")}]";
+
+            try
+            {
+                using (var connection = await CreateOpenConnectionAsync())
+                {
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        try
+                        {
+                            // 1. Filtrar las columnas a procesar (excluyendo las especificadas en ignoreColumns)
+                            var validColumns = dataTable.Columns.Cast<DataColumn>()
+                                .Select(c => c.ColumnName)
+                                .Where(c => ignoreColumns == null || !ignoreColumns.Contains(c, StringComparer.OrdinalIgnoreCase))
+                                .ToList();
+
+                            if (validColumns.Count == 0)
+                                return Result<int>.Failure("No hay columnas válidas para realizar el BulkMerge.");
+
+                            // Crear tabla temporal seleccionando únicamente las columnas requeridas
+                            string colsList = string.Join(", ", validColumns.Select(c => $"[{c}]"));
+                            string createTempTableSql = $"SELECT TOP 0 {colsList} INTO {tempTableName} FROM {cleanDestination};";
+                            using (var cmd = new SqlCommand(createTempTableSql, connection, transaction))
+                            {
+                                cmd.CommandTimeout = effectiveTimeout;
+                                await cmd.ExecuteNonQueryAsync();
+                            }
+
+                            // 2. Copiar masivamente los datos del DataTable a la tabla temporal
+                            using (var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, transaction))
+                            {
+                                bulkCopy.DestinationTableName = tempTableName;
+                                bulkCopy.BatchSize = batchSize;
+                                bulkCopy.BulkCopyTimeout = effectiveTimeout;
+
+                                foreach (string colName in validColumns)
+                                {
+                                    bulkCopy.ColumnMappings.Add(colName, colName);
+                                }
+
+                                await bulkCopy.WriteToServerAsync(dataTable);
+                            }
+
+                            // 3. Construir la consulta SQL para el MERGE
+                            string joinCondition = string.Join(" AND ", keyColumns.Select(k => $"Target.[{k}] = Source.[{k}]"));
+
+                            IEnumerable<string> colsToUpdate = updateColumns ?? validColumns.Except(keyColumns, StringComparer.OrdinalIgnoreCase);
+                            string updateClause = string.Join(", ", colsToUpdate.Select(c => $"Target.[{c}] = Source.[{c}]"));
+
+                            string insertCols = string.Join(", ", validColumns.Select(c => $"[{c}]"));
+                            string insertValues = string.Join(", ", validColumns.Select(c => $"Source.[{c}]"));
+
+                            var mergeSql = new System.Text.StringBuilder();
+                            mergeSql.AppendLine($"MERGE INTO {cleanDestination} AS Target");
+                            mergeSql.AppendLine($"USING {tempTableName} AS Source");
+                            mergeSql.AppendLine($"ON ({joinCondition})");
+                            if (!string.IsNullOrEmpty(updateClause))
+                            {
+                                mergeSql.AppendLine("WHEN MATCHED THEN");
+                                mergeSql.AppendLine($"  UPDATE SET {updateClause}");
+                            }
+                            mergeSql.AppendLine("WHEN NOT MATCHED THEN");
+                            mergeSql.AppendLine($"  INSERT ({insertCols}) VALUES ({insertValues});");
+
+                            // 4. Ejecutar la instrucción MERGE
+                            int affectedRows = 0;
+                            using (var cmdMerge = new SqlCommand(mergeSql.ToString(), connection, transaction))
+                            {
+                                cmdMerge.CommandTimeout = effectiveTimeout;
+                                affectedRows = await cmdMerge.ExecuteNonQueryAsync();
+                            }
+
+                            // 5. Eliminar tabla temporal y confirmar transacción
+                            using (var cmdDrop = new SqlCommand($"DROP TABLE {tempTableName};", connection, transaction))
+                            {
+                                cmdDrop.CommandTimeout = effectiveTimeout;
+                                await cmdDrop.ExecuteNonQueryAsync();
+                            }
+
+                            transaction.Commit();
+                            return Result<int>.Success(affectedRows);
+                        }
+                        catch (Exception ex)
+                        {
+                            try { transaction.Rollback(); } catch { }
+                            return Result<int>.Failure(ExceptionUtils.Format(ex, $"BulkMerge-Transaction-{destinationTable}"));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Result<int>.Failure(ExceptionUtils.Format(ex, $"BulkMerge-{destinationTable}"));
+            }
+        }
+
         #endregion
 
         #region --- Implementación ICheckable ---
