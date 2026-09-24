@@ -6,7 +6,7 @@
     
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Axl.Base.Common</PackageId>
-    <Version>1.1.16</Version>
+    <Version>1.1.19</Version>
     <Authors>Axl</Authors>
     <Description>Core utility library containing common classes and helpers.</Description>
     <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>

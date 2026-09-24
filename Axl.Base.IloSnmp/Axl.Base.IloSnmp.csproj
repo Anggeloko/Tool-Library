@@ -1,24 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net40</TargetFramework>
-    <RootNamespace>Axl.Base.Mqtt</RootNamespace>
-    <AssemblyName>Axl.Base.Mqtt</AssemblyName>
+    <RootNamespace>Axl.Base.IloSnmp</RootNamespace>
+    <AssemblyName>Axl.Base.IloSnmp</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>Axl.Base.Mqtt</PackageId>
-    <Version>1.1.11</Version>
+    <PackageId>Axl.Base.IloSnmp</PackageId>
+    <Version>1.0.5</Version>
     <Authors>Axl</Authors>
-    <Description>MQTT protocol client integration library.</Description>
+    <Description>HPE iLO, Dell iDRAC and Generic hardware monitoring library via SNMP (v1/v2c/v3) with candidate fallback.</Description>
     <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Axl.Base.Common\Axl.Base.Common.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="M2Mqtt" Version="3.4.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <ProjectReference Include="..\Axl.Base.Snmp\Axl.Base.Snmp.csproj" />
   </ItemGroup>
 </Project>
-
-

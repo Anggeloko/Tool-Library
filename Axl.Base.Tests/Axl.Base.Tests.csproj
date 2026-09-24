@@ -45,6 +45,7 @@
     <ProjectReference Include="..\Axl.Base.RegistryStore\Axl.Base.RegistryStore.csproj" />
     <ProjectReference Include="..\Axl.Base.Security.Cache\Axl.Base.Security.Cache.csproj" />
     <ProjectReference Include="..\Axl.Base.Ilo\Axl.Base.Ilo.csproj" />
+    <ProjectReference Include="..\Axl.Base.IloSnmp\Axl.Base.IloSnmp.csproj" />
   </ItemGroup>
 </Project>
 

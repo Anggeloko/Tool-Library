@@ -5,7 +5,7 @@
     <AssemblyName>Axl.Base.MqttNet</AssemblyName>
     <RootNamespace>Axl.Base.MqttNet</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.1.10</Version>
+    <Version>1.1.11</Version>
     <Authors>Axl</Authors>
     <Description>High-performance MQTT client using MqttNet.</Description>
     <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>

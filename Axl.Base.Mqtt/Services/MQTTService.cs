@@ -73,11 +73,11 @@ namespace Axl.Base.Mqtt.Services
 
             if (_brokerIpAddress != null)
             {
-                _mqttClient = new MqttClient(_brokerIpAddress);
+                _mqttClient = new MqttClient(_brokerIpAddress, _port, _useTls, null);
             }
             else
             {
-                _mqttClient = new MqttClient(_brokerUrl);
+                _mqttClient = new MqttClient(_brokerUrl, _port, _useTls, null);
             }
 
             _mqttClient.MqttMsgPublishReceived += OnMessageReceived;
@@ -90,6 +90,9 @@ namespace Axl.Base.Mqtt.Services
 
             try
             {
+                // Recreate the legacy client on the reconnecting thread, rather than
+                // replacing it inside M2Mqtt's disconnection callback.
+                InitializeClient();
                 if (!string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password))
                 {
                     if (!string.IsNullOrEmpty(_lwtTopic))
@@ -122,8 +125,7 @@ namespace Axl.Base.Mqtt.Services
             Console.WriteLine("[MQTT] Connection closed.");
             Disconnected?.Invoke(this, EventArgs.Empty);
             
-            // Re-inicializamos para limpiar el estado interno de la librería legacy
-            InitializeClient();
+            // The next Connect recreates the client after all in-flight callbacks finish.
         }
 
         private void OnMessageReceived(object sender, MqttMsgPublishEventArgs e)

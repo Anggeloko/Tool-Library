@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
@@ -18,6 +19,7 @@ namespace Axl.Base.MqttNet.Services
         private IMqttClient _mqttClient;
         private MqttClientOptions _mqttOptions;
         private readonly MqttFactory _factory;
+        private static readonly TimeSpan NetworkTimeout = TimeSpan.FromSeconds(30);
 
         private readonly string _brokerUrl;
         private readonly int _port;
@@ -62,6 +64,9 @@ namespace Axl.Base.MqttNet.Services
 
             _factory = new MqttFactory();
             _mqttClient = _factory.CreateMqttClient();
+            _mqttClient.ConnectedAsync += OnConnected;
+            _mqttClient.DisconnectedAsync += OnDisconnected;
+            _mqttClient.ApplicationMessageReceivedAsync += OnMessageReceived;
         }
 
         public async Task ConnectAsync()
@@ -72,7 +77,8 @@ namespace Axl.Base.MqttNet.Services
             var optionsBuilder = new MqttClientOptionsBuilder()
                 .WithTcpServer(_brokerUrl, _port)
                 .WithClientId(_clientId)
-                .WithCleanSession();
+                .WithCleanSession()
+                .WithTimeout(NetworkTimeout);
 
             if (!string.IsNullOrEmpty(_lwtTopic))
             {
@@ -98,10 +104,6 @@ namespace Axl.Base.MqttNet.Services
             }
 
             _mqttOptions = optionsBuilder.Build();
-
-            _mqttClient.ConnectedAsync += OnConnected;
-            _mqttClient.DisconnectedAsync += OnDisconnected;
-            _mqttClient.ApplicationMessageReceivedAsync += OnMessageReceived;
 
             try
             {
@@ -174,7 +176,10 @@ namespace Axl.Base.MqttNet.Services
                 topicFilterBuilder.WithTopicFilter(f => f.WithTopic(topic).WithQualityOfServiceLevel(MapQos(Qos)));
             }
 
-            await _mqttClient.SubscribeAsync(topicFilterBuilder.Build());
+            using (var timeout = new CancellationTokenSource(NetworkTimeout))
+            {
+                await _mqttClient.SubscribeAsync(topicFilterBuilder.Build(), timeout.Token);
+            }
         }
 
         public void Subscribe(string[] topics)
@@ -201,7 +206,10 @@ namespace Axl.Base.MqttNet.Services
                 .WithRetainFlag(false)
                 .Build();
 
-            await _mqttClient.PublishAsync(message);
+            using (var timeout = new CancellationTokenSource(NetworkTimeout))
+            {
+                await _mqttClient.PublishAsync(message, timeout.Token);
+            }
         }
 
         private MqttQualityOfServiceLevel MapQos(MqttQos qos)
@@ -260,7 +268,10 @@ namespace Axl.Base.MqttNet.Services
         {
             if (_mqttClient != null && _mqttClient.IsConnected)
             {
-                await _mqttClient.DisconnectAsync();
+                using (var timeout = new CancellationTokenSource(NetworkTimeout))
+                {
+                    await _mqttClient.DisconnectAsync(cancellationToken: timeout.Token);
+                }
             }
         }
 
