@@ -5,8 +5,8 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Web.Script.Serialization;
-using Axl.Base.Ilo.Domain.Models;
-using Axl.Base.Ilo.Domain.Ports;
+using Axl.Base.Interfaces;
+using Axl.Base.Models;
 
 namespace Axl.Base.Ilo.Infrastructure.Adapters
 {
@@ -25,46 +25,75 @@ namespace Axl.Base.Ilo.Infrastructure.Adapters
 
         public IloMetrics GetMetrics(string ip, string username, string password)
         {
+            return GetMetrics(ip, ip, 0, 3, username, password, "", "", "SHA1", "DES", 8000);
+        }
+
+        public IloMetrics GetMetrics(
+            string deviceId,
+            string ip,
+            int port = 0,
+            int version = 3,
+            string user = "",
+            string password = "",
+            string privacy = "",
+            string comm = "",
+            string authProto = "SHA1",
+            string privProto = "DES",
+            int timeoutMs = 2000)
+        {
             IloMetrics metrics = new IloMetrics();
             metrics.ServerIp = ip;
             metrics.Timestamp = DateTime.UtcNow;
 
-            string baseUrl = ip.StartsWith("http") ? ip : "https://" + ip;
-            baseUrl = baseUrl.TrimEnd('/');
+            string lockId = string.IsNullOrEmpty(deviceId) ? ip : deviceId;
+            bool lockAcquired = Axl.Base.Statics.TrafficControl.StartParallelLight(lockId);
 
-            string authInfo = username + ":" + password;
-            string authHeaderValue = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(authInfo));
-
-            // Helper para peticiones HTTP
-            Func<string, Dictionary<string, object>> getRedfishEndpoint = (endpoint) =>
+            try
             {
-                try
+                if (!lockAcquired)
                 {
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(baseUrl + endpoint);
-                    request.Headers[HttpRequestHeader.Authorization] = authHeaderValue;
-                    request.Accept = "application/json";
-                    request.Method = "GET";
-                    request.Timeout = 8000; // Timeout de 8 segundos por llamada
+                    metrics.RawDetails["Error_Lock"] = $"[BLOCK] Device {lockId} is busy. TrafficControl lock timeout.";
+                    return metrics;
+                }
 
-                    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                string scheme = ip.StartsWith("http://") || ip.StartsWith("https://") ? "" : "https://";
+                string host = (port <= 0 || port == 443 || port == 80) ? ip : $"{ip}:{port}";
+                string baseUrl = $"{scheme}{host}".TrimEnd('/');
+
+                string authInfo = user + ":" + password;
+                string authHeaderValue = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(authInfo));
+                int requestTimeout = timeoutMs > 0 ? timeoutMs : 8000;
+
+                // Helper para peticiones HTTP
+                Func<string, Dictionary<string, object>> getRedfishEndpoint = (endpoint) =>
+                {
+                    try
                     {
-                        if (response.StatusCode == HttpStatusCode.OK)
+                        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(baseUrl + endpoint);
+                        request.Headers[HttpRequestHeader.Authorization] = authHeaderValue;
+                        request.Accept = "application/json";
+                        request.Method = "GET";
+                        request.Timeout = requestTimeout;
+
+                        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
                         {
-                            using (Stream stream = response.GetResponseStream())
-                            using (StreamReader reader = new StreamReader(stream))
+                            if (response.StatusCode == HttpStatusCode.OK)
                             {
-                                string json = reader.ReadToEnd();
-                                return _serializer.Deserialize<Dictionary<string, object>>(json);
+                                using (Stream stream = response.GetResponseStream())
+                                using (StreamReader reader = new StreamReader(stream))
+                                {
+                                    string json = reader.ReadToEnd();
+                                    return _serializer.Deserialize<Dictionary<string, object>>(json);
+                                }
                             }
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    metrics.RawDetails["Error_" + endpoint.Replace('/', '_')] = ex.Message;
-                }
-                return null;
-            };
+                    catch (Exception ex)
+                    {
+                        metrics.RawDetails["Error_" + endpoint.Replace('/', '_')] = ex.Message;
+                    }
+                    return null;
+                };
 
             // 1. Energía (Power)
             var powerData = getRedfishEndpoint("/redfish/v1/Chassis/1/Power");
@@ -99,6 +128,14 @@ namespace Axl.Base.Ilo.Infrastructure.Adapters
             if (imlData != null) ParseEvents(imlData, metrics);
 
             return metrics;
+            }
+            finally
+            {
+                if (lockAcquired)
+                {
+                    Axl.Base.Statics.TrafficControl.StopParallelLight(lockId);
+                }
+            }
         }
 
         private void ParsePowerMetrics(Dictionary<string, object> data, IloMetrics metrics)

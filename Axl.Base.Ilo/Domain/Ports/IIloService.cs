@@ -1,13 +1,13 @@
-using Axl.Base.Ilo.Domain.Models;
+using Axl.Base.Interfaces;
+using Axl.Base.Models;
 
 namespace Axl.Base.Ilo.Domain.Ports
 {
     /// <summary>
-    /// Puerto de Entrada/Salida (Port) que expone la capacidad de obtener métricas.
-    /// Define el contrato de lo que requiere el dominio para interactuar con la infraestructura.
+    /// Alias de compatibilidad hacia atrás para IIloService.
+    /// La interfaz principal reside ahora en Axl.Base.Common.Interfaces.IIloService.
     /// </summary>
-    public interface IIloService
+    public interface IIloService : Axl.Base.Interfaces.IIloService
     {
-        IloMetrics GetMetrics(string ip, string username, string password);
     }
 }

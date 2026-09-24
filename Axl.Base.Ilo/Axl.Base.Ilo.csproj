@@ -5,7 +5,7 @@
     <AssemblyName>Axl.Base.Ilo</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Axl.Base.Ilo</PackageId>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>Axl</Authors>
     <Description>HPE iLO (Integrated Lights-Out) client library based on Redfish API.</Description>
     <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
