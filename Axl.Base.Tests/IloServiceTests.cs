@@ -1,7 +1,7 @@
 using System;
 using NUnit.Framework;
-using Axl.Base.Ilo.Domain.Models;
-using Axl.Base.Ilo.Domain.Ports;
+using Axl.Base.Interfaces;
+using Axl.Base.Models;
 using Axl.Base.Ilo.Infrastructure.Adapters;
 
 namespace Axl.Base.Tests
