@@ -245,6 +245,64 @@ namespace Axl.Base.Tests
         }
 
         [Test]
+        public void GetMetrics_DellWithoutHealthOids_LeavesHealthValuesNull()
+        {
+            // Lo que publican los iDRAC Dell de Cartagena, Dagua y Buenaventura (captura del 2026-09-29):
+            // el agente contesta el texto "SNMP No-Such-Object" en los OID de salud y de firmware. Antes
+            // pasaba como valor, salia DimmHealth "Unknown" y el numero caia en 0.0, igual que una falla.
+            string getErr = "";
+            _mockSnmpService.Setup(s => s.Get(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<List<string>>(), out getErr, It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(),
+                It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(new Dictionary<string, string> {
+                    { "1.3.6.1.2.1.1.2.0", "1.3.6.1.4.1.674.10892.5" },
+                    { "1.3.6.1.2.1.1.5.0", "iDRAC-8ZSVRZ2" },
+                    { "1.3.6.1.4.1.674.10892.5.2.1.0", "SNMP No-Such-Object" },
+                    { "1.3.6.1.4.1.674.10892.5.4.1100.50.1.5.1", "SNMP No-Such-Object" },
+                    { "1.3.6.1.4.1.674.10892.5.2.3.0", "No Such Instance" },
+                    { "1.3.6.1.4.1.674.10892.5.5.1.20.130.1.1.38.1", "SNMP No-Such-Object" },
+                    { "1.3.6.1.4.1.674.10892.5.2.4.0", "noSuchObject" },
+                    { "1.3.6.1.4.1.674.10892.5.1.1.8.0", "SNMP No-Such-Object" }
+                });
+
+            var result = _iloSnmpAdapter.GetMetrics("server", "192.0.2.1", 161, 2, comm: "test");
+
+            Assert.AreEqual("Dell", result.RawDetails["Vendor"]);
+            Assert.AreEqual("Unknown", result.DimmHealth);
+            Assert.IsNull(result.DimmHealthValue, "Unknown no es falla: no debe publicarse 0.0");
+            Assert.AreEqual("Unknown", result.StorageHealth);
+            Assert.IsNull(result.DriveHealth, "Unknown no es falla: no debe publicarse 0.0");
+            Assert.AreEqual("Unknown", result.SystemHealthRollup);
+            Assert.AreNotEqual("SNMP No-Such-Object", result.FirmwareVersion);
+        }
+
+        [Test]
+        public void GetMetrics_RealFailureStillPublishesZero()
+        {
+            // Contracara del anterior: un codigo de falla real (HPE 4 = failed) SIGUE dando 0.0.
+            string getErr = "";
+            _mockSnmpService.Setup(s => s.Get(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<List<string>>(), out getErr, It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(),
+                It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(new Dictionary<string, string> {
+                    { "1.3.6.1.2.1.1.2.0", "1.3.6.1.4.1.232" },
+                    { "1.3.6.1.4.1.232.6.2.14.4.0", "4" },
+                    { "1.3.6.1.4.1.232.3.1.3.0", "3" }
+                });
+
+            var result = _iloSnmpAdapter.GetMetrics("server", "192.0.2.1", 161, 2, comm: "test");
+
+            Assert.AreEqual("Critical", result.DimmHealth);
+            Assert.AreEqual(0.0, result.DimmHealthValue);
+            Assert.AreEqual("Warning", result.StorageHealth);
+            Assert.AreEqual(0.5, result.DriveHealth);
+        }
+
+        [Test]
         public void GetMetrics_UsesWorstPhysicalDiskStatus_WhenHpeControllerIsHealthy()
         {
             string getErr = "";

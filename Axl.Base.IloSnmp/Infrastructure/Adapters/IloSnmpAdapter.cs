@@ -278,7 +278,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             if (!string.IsNullOrEmpty(memCond))
             {
                 metrics.DimmHealth = MapStatusToHealth(memCond, isDell);
-                metrics.DimmHealthValue = metrics.DimmHealth == "OK" ? 1.0 : (metrics.DimmHealth == "Warning" ? 0.5 : 0.0);
+                metrics.DimmHealthValue = HealthValue(metrics.DimmHealth);
             }
 
             // 5. Storage Controller / Discos Health con Fallback
@@ -286,7 +286,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             if (!string.IsNullOrEmpty(driveCond))
             {
                 metrics.StorageHealth = MapStatusToHealth(driveCond, isDell);
-                metrics.DriveHealth = metrics.StorageHealth == "OK" ? 1.0 : (metrics.StorageHealth == "Warning" ? 0.5 : 0.0);
+                metrics.DriveHealth = HealthValue(metrics.StorageHealth);
             }
 
             // 6. Firmware Version con Fallback
@@ -557,6 +557,38 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 (score.Value == 1.0 ? "OK" : (score.Value == 0.5 ? "Warning" : "Critical"));
         }
 
+        // Valor numerico de una salud ya mapeada. "Unknown" (el agente no dio un codigo que se pueda
+        // interpretar) es AUSENCIA de dato, no falla: devuelve null y el Base no guarda la metrica.
+        // Antes caia en 0.0, igual que "Critical": los iDRAC Dell que no exponen el OID salian en la
+        // pantalla con toda la memoria y todos los discos en falla (medido 2026-09-29: EqCode 68, 69,
+        // 105 y 129, todos Dell, dimm_health = drive_health = 0 con DimmHealth "Unknown").
+        private static double? HealthValue(string health)
+        {
+            if (health == "OK") return 1.0;
+            if (health == "Warning") return 0.5;
+            if (health == "Critical") return 0.0;
+            return null;
+        }
+
+        // Respuestas de error de un agente SNMP que llegan como texto en lugar de un valor. La libreria
+        // SNMP no siempre las entrega con la misma forma: medido en iDRAC Dell el texto es
+        // "SNMP No-Such-Object", que el Equals exacto contra "NoSuchObject" dejaba pasar como valor.
+        // Se comparan solo las letras, sin espacios, guiones ni prefijo.
+        private static readonly string[] SnmpErrorMarkers = { "nosuchobject", "nosuchinstance", "endofmibview" };
+
+        private static bool IsSnmpErrorValue(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return true;
+            var letters = new System.Text.StringBuilder(value.Length);
+            foreach (char c in value)
+                if (char.IsLetter(c)) letters.Append(char.ToLowerInvariant(c));
+            string norm = letters.ToString();
+            if (norm == "null") return true;
+            foreach (var marker in SnmpErrorMarkers)
+                if (norm.IndexOf(marker, StringComparison.Ordinal) >= 0) return true;
+            return false;
+        }
+
         private static string TryGetFirstValid(Dictionary<string, string> data, params string[] candidateOids)
         {
             if (data == null || candidateOids == null) return null;
@@ -566,11 +598,8 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 if (data.TryGetValue(oid, out string val) && !string.IsNullOrWhiteSpace(val))
                 {
                     string trimmed = val.Trim();
-                    // Ignorar respuestas de error de agentes SNMP
-                    if (!trimmed.Equals("NoSuchObject", StringComparison.OrdinalIgnoreCase) &&
-                        !trimmed.Equals("NoSuchInstance", StringComparison.OrdinalIgnoreCase) &&
-                        !trimmed.Equals("EndOfMibView", StringComparison.OrdinalIgnoreCase) &&
-                        !trimmed.Equals("Null", StringComparison.OrdinalIgnoreCase))
+                    // Ignorar respuestas de error de agentes SNMP (en cualquiera de sus formas de texto)
+                    if (!IsSnmpErrorValue(trimmed))
                     {
                         return trimmed;
                     }
