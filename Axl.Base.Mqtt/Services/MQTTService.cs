@@ -205,6 +205,11 @@ namespace Axl.Base.Mqtt.Services
         // Used for controlled shutdown so DISCONNECT does not overtake the final retained status.
         public bool PublishConfirmed(string topic, string payload, int timeoutMs = 2000)
         {
+            return PublishConfirmed(topic, payload, false, timeoutMs);
+        }
+
+        public bool PublishConfirmed(string topic, string payload, bool compress, int timeoutMs = 2000)
+        {
             if (!IsConnected) return false;
             var gate = new object();
             ushort messageId = 0;
@@ -223,7 +228,9 @@ namespace Axl.Base.Mqtt.Services
                 _mqttClient.MqttMsgPublished += handler;
                 try
                 {
-                    var id = _mqttClient.Publish(topic, Encoding.UTF8.GetBytes(payload), MqttMsgBase.QOS_LEVEL_AT_LEAST_ONCE, true);
+                    var message = Encoding.UTF8.GetBytes(payload);
+                    if (compress) message = InternalCompress(message);
+                    var id = _mqttClient.Publish(topic, message, MqttMsgBase.QOS_LEVEL_AT_LEAST_ONCE, true);
                     lock (gate) { messageId = id; if (acknowledged.Contains(id)) completed.Set(); }
                     return completed.WaitOne(timeoutMs);
                 }
