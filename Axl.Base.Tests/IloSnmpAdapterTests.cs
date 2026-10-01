@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Axl.Base.IloSnmp.Infrastructure.Adapters;
 using Axl.Base.Interfaces;
 using Moq;
@@ -53,8 +53,8 @@ namespace Axl.Base.Tests
 
             var fanData = new Dictionary<string, string>
             {
-                { "1.3.6.1.4.1.232.6.2.6.7.1.12.1", "24" },
-                { "1.3.6.1.4.1.232.6.2.6.7.1.12.2", "26" },
+                { "1.3.6.1.4.1.232.6.2.6.7.1.12.1", "12000" },
+                { "1.3.6.1.4.1.232.6.2.6.7.1.12.2", "14000" },
                 { "1.3.6.1.4.1.232.6.2.6.7.1.9.1", "2" }
             };
 
@@ -134,7 +134,8 @@ namespace Axl.Base.Tests
 
             Assert.IsNull(result.Psu1Watts);
             Assert.AreEqual(0.5, result.RawDetails["psu_health"]);
-            Assert.AreEqual(25, result.FanAvgPct);
+            Assert.IsNull(result.FanAvgPct);
+            Assert.AreEqual(13000d, result.RawDetails["fan_avg_rpm"]);
             Assert.AreEqual(1.0, result.RawDetails["fan_health"]);
 
             Assert.AreEqual(1, result.Processors.Count);

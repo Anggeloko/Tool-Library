@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.13.3" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.4.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+    <PackageReference Include="Moq" Version="4.18.4" />
+    <ProjectReference Include="../Axl.Base.IloSnmp/Axl.Base.IloSnmp.csproj" AdditionalProperties="GeneratePackageOnBuild=false;LangVersion=latest" />
+    <ProjectReference Include="../Axl.Base.Mqtt/Axl.Base.Mqtt.csproj" AdditionalProperties="GeneratePackageOnBuild=false;LangVersion=latest" />
+    <ProjectReference Include="../Axl.Base.Ilo/Axl.Base.Ilo.csproj" AdditionalProperties="GeneratePackageOnBuild=false;LangVersion=latest" />
+    <Compile Include="../Axl.Base.Tests/IloSnmpAdapterTests.cs" Link="IloSnmpAdapterTests.cs" />
+  </ItemGroup>
+</Project>

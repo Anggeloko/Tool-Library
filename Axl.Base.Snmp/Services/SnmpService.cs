@@ -1,4 +1,4 @@
-using SnmpSharpNet;
+﻿using SnmpSharpNet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -119,6 +119,7 @@ namespace Axl.Base.Snmp.Services
         {
             error = "";
             Dictionary<string, string> r = new Dictionary<string, string>();
+            UdpTarget target = null;
             try
             {
                 OctetString community = new OctetString(comm);
@@ -132,7 +133,7 @@ namespace Axl.Base.Snmp.Services
                 //  parse to an IP address
                 IpAddress agent = new IpAddress(ip);
                 // Construct target
-                UdpTarget target = new UdpTarget((IPAddress)agent, port, to, 3);
+                target = new UdpTarget((IPAddress)agent, port, to, 3);
                 // Pdu class used for all requests
                 foreach (string o in oids)
                 {
@@ -145,7 +146,8 @@ namespace Axl.Base.Snmp.Services
                     {
                         // ErrorStatus other then 0 is an error returned by 
                         // the Agent - see SnmpConstants for error definitions
-                        if (result.Pdu.ErrorStatus != 0)
+                        if (result.Pdu.ErrorStatus == 2) r[o] = "SNMP No-Such-Object";
+                        else if (result.Pdu.ErrorStatus != 0)
                         {
                             // agent reported an error with the request
                             error = "[ERROR(SNMP)] GET Version 1: " + result.Pdu.ErrorStatus + "(" + result.Pdu.ErrorIndex + ") [Ip: " + ip + "] [Port: " + port + "]";
@@ -164,18 +166,19 @@ namespace Axl.Base.Snmp.Services
                         error = "[ERROR(SNMP)] GET Version 1: No response received from SNMP agent [Ip: " + ip + "] [Port: " + port + "]";
                     }
                 }
-                target.Close();
             }
             catch (Exception ex)
             {
                 error = "[ERROR(SNMP)] GET Version 1: " + ex.Message + " [Ip: " + ip + "] [Port: " + port + "]";
             }
+            finally { if (target != null) target.Close(); }
             return r;
         }
         private Dictionary<string, string> ExecV2(string ip, int port, List<string> oids, PduType type, out string error, int to, string comm)
         {
             error = "";
             Dictionary<string, string> r = new Dictionary<string, string>();
+            UdpTarget target = null;
             try
             {
                 OctetString community = new OctetString(comm);
@@ -189,7 +192,7 @@ namespace Axl.Base.Snmp.Services
                 //  parse to an IP address
                 IpAddress agent = new IpAddress(ip);
                 // Construct target
-                UdpTarget target = new UdpTarget((IPAddress)agent, port, to, 3);
+                target = new UdpTarget((IPAddress)agent, port, to, 3);
                 // Pdu class used for all requests
                 Pdu pdu = new Pdu(type);
                 foreach (string o in oids)
@@ -221,399 +224,130 @@ namespace Axl.Base.Snmp.Services
                 {
                     error = "[ERROR(SNMP)] GET Version 2: No response received from SNMP agent [Ip: " + ip + "] [Port: " + port + "]";
                 }
-                target.Close();
             }
             catch (Exception ex)
             {
                 error = "[ERROR(SNMP)] GET Version 2: " + ex.Message + " [Ip: " + ip + "] [Port: " + port + "]";
             }
+            finally { if (target != null) target.Close(); }
             return r;
         }
         private Dictionary<string, string> ExecV3(string ip, int port, List<string> oids, PduType type, out string error, int to, string usr, string psw, string prv, string comm, string authProto, string privProto)
         {
             error = "";
-            Dictionary<string, string> r = new Dictionary<string, string>();
-
-            if (string.IsNullOrEmpty(usr) || string.IsNullOrEmpty(psw) || string.IsNullOrEmpty(prv))
-            {
-                error = $"[ERROR(SNMP)] GET Version 3: User, password and privacy key are required [Ip: {ip}] [Port: {port}]";
-                return r;
-            }
+            var values = new Dictionary<string, string>();
+            UdpTarget target = null;
             try
             {
-                IpAddress ipa = new IpAddress(ip);
-                UdpTarget target = new UdpTarget((IPAddress)ipa, port, to, 3);
-                SecureAgentParameters param = new SecureAgentParameters();
-                if (!target.Discovery(param))
-                {
-                    error = $"[ERROR(SNMP)] GET Version 3: Discovery failed [Ip: {ip}] [Port: {port}]";
-                    target.Close();
-                    return r;
-                }
-                // Construct a Protocol Data Unit (PDU)
-                Pdu pdu = new Pdu();
-                // Set the request type (default is Get)
-                pdu.Type = type;
-                // Add Context Name
-                param.ContextName.Set(comm);
-                // Add OID
-                foreach (string o in oids)
-                {
-                    pdu.VbList.Add(o);
-                }
-                // SecureAgentParameters class (see discovery section above)
-                AuthenticationDigests auth = authProto.ToUpper() == "MD5" ? AuthenticationDigests.MD5 : AuthenticationDigests.SHA1;
-                PrivacyProtocols priv = GetPrivacyProtocol(privProto);
-                param.authPriv(usr, auth, psw, priv, prv);
-                //param.authPriv(usr, AuthenticationDigests.SHA1, psw, PrivacyProtocols.AES128, prv);
-                // Make a request. Request can throw a number of errors so wrap it in try/catch
-                SnmpV3Packet result;
-                try
-                {
-                    result = (SnmpV3Packet)target.Request(pdu, param);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error: {0}", ex.Message);
-                    result = null;
-                }
-                if (result != null)
-                {
-                    if (result.ScopedPdu.Type == PduType.Report)
-                    {
-                        foreach (Vb v in result.ScopedPdu.VbList)
-                        {
-                            //Log.GetInstance().Write("[REPORT(SNMP)] GET Version 3: " + v.Oid.ToString() + " -> (" + SnmpConstants.GetTypeName(v.Value.Type) + ") " + v.Value.ToString());
-                        }
-                    }
-                    else
-                    {
-                        if (result.ScopedPdu.ErrorStatus == 0)
-                        {
-                            foreach (Vb v in result.ScopedPdu.VbList)
-                            {
-                                if (!r.ContainsKey(v.Oid.ToString()))
-                                    r.Add(v.Oid.ToString(), v.Value.ToString());
-                            }
-                        }
-                        else
-                        {
-                            error = "[ERROR(SNMP)] GET Version 3: " + SnmpError.ErrorMessage(result.ScopedPdu.ErrorStatus) + " " + result.ScopedPdu.ErrorStatus + ": " + result.ScopedPdu.ErrorIndex + " [Ip: " + ip + "] [Port: " + port + "]";
-                        }
-                    }
-                }
-                target.Close();
+                if (string.IsNullOrEmpty(usr) || string.IsNullOrEmpty(psw) || string.IsNullOrEmpty(prv))
+                    throw new ArgumentException("configuration_invalid: User, password and privacy key are required");
+                target = new UdpTarget((IPAddress)new IpAddress(ip), port, to, 3);
+                var parameters = new SecureAgentParameters();
+                if (!target.Discovery(parameters)) { error = "Discovery failed: no response from SNMP agent"; return values; }
+                parameters.ContextName.Set(comm ?? "");
+                parameters.authPriv(usr, authProto.ToUpperInvariant() == "MD5" ? AuthenticationDigests.MD5 : AuthenticationDigests.SHA1, psw, GetPrivacyProtocol(privProto), prv);
+                var request = new Pdu(type);
+                foreach (var oid in oids) request.VbList.Add(oid);
+                var response = (SnmpV3Packet)target.Request(request, parameters);
+                if (response == null) error = "No response received from SNMP agent";
+                else if (response.ScopedPdu.Type == PduType.Report) error = ReportError(response.ScopedPdu);
+                else if (response.ScopedPdu.ErrorStatus != 0)
+                    error = SnmpError.ErrorMessage(response.ScopedPdu.ErrorStatus) + " at index " + response.ScopedPdu.ErrorIndex;
+                else foreach (Vb binding in response.ScopedPdu.VbList) values[binding.Oid.ToString()] = binding.Value.ToString();
             }
-            catch (Exception ex)
-            {
-                error = $"[ERROR(SNMP)] GET Version 3: {ex.Message} [Ip: {ip}] [Port: {port}]";
-            }
-            return r;
+            catch (Exception ex) { error = ex.Message; }
+            finally { if (target != null) target.Close(); }
+            return values;
         }
+
+        internal static string ReportError(Pdu report)
+        {
+            var details = new List<string>();
+            foreach (Vb binding in report.VbList)
+            {
+                var oid = binding.Oid.ToString();
+                var cause = oid == "1.3.6.1.6.3.15.1.1.3.0" ? "authentication_failed: unknownUserName" :
+                    oid == "1.3.6.1.6.3.15.1.1.5.0" ? "authentication_failed: wrongDigest" :
+                    oid == "1.3.6.1.6.3.15.1.1.6.0" ? "authentication_failed: decryptionError" :
+                    oid == "1.3.6.1.6.3.15.1.1.2.0" ? "notInTimeWindow" :
+                    oid == "1.3.6.1.6.3.15.1.1.4.0" ? "unknownEngineID" :
+                    oid == "1.3.6.1.6.3.15.1.1.1.0" ? "unsupportedSecurityLevel" : "protocol_error";
+                details.Add(cause + " (" + oid + ")");
+            }
+            return "SNMPv3 REPORT: " + (details.Count == 0 ? "empty report" : string.Join("; ", details));
+        }
+
         private Dictionary<string, string> WalkV1(string ip, int port, string oid, out string error, int to, string comm)
-        {
-            error = "";
-            Dictionary<string, string> r = new Dictionary<string, string>();
-            try
-            {
-                // SNMP community name
-                OctetString community = new OctetString(comm);
-                // Define agent parameters class
-                AgentParameters param = new AgentParameters(community);
-                // Set SNMP Version to 1
-                param.Version = SnmpVersion.Ver1;
-                // Construct the agent address object
-                // IpAddress class is easy to use here because
-                //  it will try to resolve constructor parameter if it doesn't
-                //  parse to an IP address
-                IpAddress agent = new IpAddress(ip);
-                // Construct target
-                UdpTarget target = new UdpTarget((IPAddress)agent, port, to, 3);
-                // Define Oid that is the root of the MIB
-                //  tree you wish to retrieve
-                Oid rootOid = new Oid(oid); // ifDescr
-                                            // This Oid represents last Oid returned by
-                                            //  the SNMP agent
-                Oid lastOid = (Oid)rootOid.Clone();
-                // Pdu class used for all requests
-                Pdu pdu = new Pdu(PduType.GetNext);
-                // Loop through results
-                while (lastOid != null)
-                {
-                    // When Pdu class is first constructed, RequestId is set to a random value
-                    // that needs to be incremented on subsequent requests made using the
-                    // same instance of the Pdu class.
-                    if (pdu.RequestId != 0)
-                    {
-                        pdu.RequestId += 1;
-                    }
-                    // Clear Oids from the Pdu class.
-                    pdu.VbList.Clear();
-                    // Initialize request PDU with the last retrieved Oid
-                    pdu.VbList.Add(lastOid);
-                    // Make SNMP request
-                    SnmpV1Packet result = (SnmpV1Packet)target.Request(pdu, param);
-                    // You should catch exceptions in the Request if using in real application.
-
-                    // If result is null then agent didn't reply or we couldn't parse the reply.
-                    if (result != null)
-                    {
-                        // ErrorStatus other then 0 is an error returned by 
-                        // the Agent - see SnmpConstants for error definitions
-                        if (result.Pdu.ErrorStatus != 0)
-                        {
-                            // agent reported an error with the request
-                            error = "[ERROR(SNMP)] WALK Version 1: " + result.Pdu.ErrorStatus + "(" + result.Pdu.ErrorIndex + ") [Ip: " + ip + "] [Port: " + port + "]";
-                            lastOid = null;
-                            break;
-                        }
-                        else
-                        {
-                            // Walk through returned variable bindings
-                            foreach (Vb v in result.Pdu.VbList)
-                            {
-
-                                // Check that retrieved Oid is "child" of the root OID
-                                if (rootOid.IsRootOf(v.Oid))
-                                {
-                                    if (!r.ContainsKey(v.Oid.ToString()))
-                                        r.Add(v.Oid.ToString(), v.Value.ToString());
-                                    lastOid = v.Oid;
-                                }
-                                else
-                                {
-                                    // we have reached the end of the requested
-                                    // MIB tree. Set lastOid to null and exit loop
-                                    lastOid = null;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        error = "[ERROR(SNMP)] WALK Version 1: No response received from SNMP agent [Ip: " + ip + "] [Port: " + port + "]";
-                    }
-                }
-                target.Close();
-            }
-            catch (Exception ex)
-            {
-                error = "[ERROR(SNMP)] WALK Version 1: " + ex.Message + " [Ip: " + ip + "] [Port: " + port + "]";
-            }
-            return r;
-        }
+        { return WalkCore(ip, port, oid, 1, out error, to, "", "", "", comm, "SHA1", "DES"); }
         private Dictionary<string, string> WalkV2(string ip, int port, string oid, out string error, int to, string comm)
-        {
-            error = "";
-            Dictionary<string, string> r = new Dictionary<string, string>();
-            try
-            {
-                // SNMP community name
-                OctetString community = new OctetString(comm);
-                // Define agent parameters class
-                AgentParameters param = new AgentParameters(community);
-                // Set SNMP Version to 2 (GET-BULK only works with SNMP ver 2 and 3)
-                param.Version = SnmpVersion.Ver2;
-                // Construct the agent address object
-                // IpAddress class is easy to use here because
-                //  it will try to resolve constructor parameter if it doesn't
-                //  parse to an IP address
-                IpAddress agent = new IpAddress(ip);
-                // Construct target
-                UdpTarget target = new UdpTarget((IPAddress)agent, port, to, 3);
-                // Define Oid that is the root of the MIB
-                //  tree you wish to retrieve
-                Oid rootOid = new Oid(oid); // ifDescr
-                                            // This Oid represents last Oid returned by
-                                            //  the SNMP agent
-                Oid lastOid = (Oid)rootOid.Clone();
-                // Pdu class used for all requests
-                Pdu pdu = new Pdu(PduType.GetBulk);
-                // In this example, set NonRepeaters value to 0
-                pdu.NonRepeaters = 0;
-                // MaxRepetitions tells the agent how many Oid/Value pairs to return
-                // in the response.
-                pdu.MaxRepetitions = 5;
-                // Loop through results
-                while (lastOid != null)
-                {
-                    // When Pdu class is first constructed, RequestId is set to 0
-                    // and during encoding id will be set to the random value
-                    // for subsequent requests, id will be set to a value that
-                    // needs to be incremented to have unique request ids for each
-                    // packet
-                    if (pdu.RequestId != 0)
-                    {
-                        pdu.RequestId += 1;
-                    }
-                    // Clear Oids from the Pdu class.
-                    pdu.VbList.Clear();
-                    // Initialize request PDU with the last retrieved Oid
-                    pdu.VbList.Add(lastOid);
-                    // Make SNMP request
-                    SnmpV2Packet result = (SnmpV2Packet)target.Request(pdu, param);
-                    // You should catch exceptions in the Request if using in real application.
-
-                    // If result is null then agent didn't reply or we couldn't parse the reply.
-                    if (result != null)
-                    {
-                        // ErrorStatus other then 0 is an error returned by 
-                        // the Agent - see SnmpConstants for error definitions
-                        if (result.Pdu.ErrorStatus != 0)
-                        {
-                            // agent reported an error with the request
-                            error = "[ERROR(SNMP)] WALK Version 2: " + result.Pdu.ErrorStatus + "(" + result.Pdu.ErrorIndex + ") [Ip: " + ip + "] [Port: " + port + "]";
-                            lastOid = null;
-                            break;
-                        }
-                        else
-                        {
-                            // Walk through returned variable bindings
-                            foreach (Vb v in result.Pdu.VbList)
-                            {
-                                // Check that retrieved Oid is "child" of the root OID
-                                if (rootOid.IsRootOf(v.Oid))
-                                {
-                                    if (!r.ContainsKey(v.Oid.ToString()))
-                                        r.Add(v.Oid.ToString(), v.Value.ToString());
-                                    if (v.Value.Type == SnmpConstants.SMI_ENDOFMIBVIEW)
-                                        lastOid = null;
-                                    else
-                                        lastOid = v.Oid;
-                                }
-                                else
-                                {
-                                    // we have reached the end of the requested
-                                    // MIB tree. Set lastOid to null and exit loop
-                                    lastOid = null;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        error = "[ERROR(SNMP)] WALK Version 2: No response received from SNMP agent [Ip: " + ip + "] [Port: " + port + "]";
-                    }
-                }
-                target.Close();
-            }
-            catch (Exception ex)
-            {
-                error = "[ERROR(SNMP)] WALK Version 2: " + ex.Message + " [Ip: " + ip + "] [Port: " + port + "]";
-            }
-            return r;
-        }
+        { return WalkCore(ip, port, oid, 2, out error, to, "", "", "", comm, "SHA1", "DES"); }
         private Dictionary<string, string> WalkV3(string ip, int port, string oid, out string error, int to, string usr, string psw, string prv, string comm, string authProto, string privProto)
+        { return WalkCore(ip, port, oid, 3, out error, to, usr, psw, prv, comm, authProto, privProto); }
+
+        private Dictionary<string, string> WalkCore(string ip, int port, string oid, int version, out string error, int timeout, string user, string password, string privacy, string community, string authProto, string privProto)
         {
             error = "";
-            Dictionary<string, string> r = new Dictionary<string, string>();
-
-            if (string.IsNullOrEmpty(usr) || string.IsNullOrEmpty(psw) || string.IsNullOrEmpty(prv))
-            {
-                error = $"[ERROR(SNMP)] GET Version 3: User, password and privacy key are required [Ip: {ip}] [Port: {port}]";
-                return r;
-            }
+            var values = new Dictionary<string, string>();
+            UdpTarget target = null;
             try
             {
-                IpAddress ipa = new IpAddress(ip);
-                UdpTarget target = new UdpTarget((IPAddress)ipa, port, to, 3);
-                SecureAgentParameters param = new SecureAgentParameters();
-                if (!target.Discovery(param))
+                var root = new Oid(oid);
+                var cursor = new Oid(oid);
+                target = new UdpTarget((IPAddress)new IpAddress(ip), port, timeout, 3);
+                var parameters = new AgentParameters(new OctetString(community ?? "")) { Version = version == 1 ? SnmpVersion.Ver1 : SnmpVersion.Ver2 };
+                var secure = new SecureAgentParameters();
+                if (version == 3)
                 {
-                    error = $"[ERROR(SNMP)] GET Version 3: Discovery failed [Ip: {ip}] [Port: {port}]";
-                    target.Close();
-                    return r;
+                    if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(privacy))
+                        throw new ArgumentException("configuration_invalid: User, password and privacy key are required");
+                    if (!target.Discovery(secure)) { error = "Discovery failed: no response from SNMP agent"; return values; }
+                    secure.ContextName.Set(community ?? "");
+                    secure.authPriv(user, authProto.ToUpperInvariant() == "MD5" ? AuthenticationDigests.MD5 : AuthenticationDigests.SHA1, password, GetPrivacyProtocol(privProto), privacy);
                 }
-                // Define Oid that is the root of the MIB
-                //  tree you wish to retrieve
-                Oid rootOid = new Oid(oid); // ifDescr
-                                            // This Oid represents last Oid returned by
-                                            //  the SNMP agent
-                Oid lastOid = (Oid)rootOid.Clone();
-                // Pdu class used for all requests
-                Pdu pdu = new Pdu(PduType.GetBulk);
-                // In this example, set NonRepeaters value to 0
-                pdu.NonRepeaters = 0;
-                // MaxRepetitions tells the agent how many Oid/Value pairs to return
-                // in the response.
-                pdu.MaxRepetitions = 5;
-                // Add Context Name
-                param.ContextName.Set(comm);
-                // SecureAgentParameters class (see discovery section above)
-                AuthenticationDigests auth = authProto.ToUpper() == "MD5" ? AuthenticationDigests.MD5 : AuthenticationDigests.SHA1;
-                PrivacyProtocols priv = GetPrivacyProtocol(privProto);
-                param.authPriv(usr, auth, psw, priv, prv);
-                //param.authPriv(usr, AuthenticationDigests.SHA1, psw, PrivacyProtocols.AES128, prv);
-                // Loop through results
-                while (lastOid != null)
+                while (cursor != null)
                 {
-                    // When Pdu class is first constructed, RequestId is set to 0
-                    // and during encoding id will be set to the random value
-                    // for subsequent requests, id will be set to a value that
-                    // needs to be incremented to have unique request ids for each
-                    // packet
-                    if (pdu.RequestId != 0)
+                    var request = new Pdu(version == 1 ? PduType.GetNext : PduType.GetBulk);
+                    if (version != 1) { request.NonRepeaters = 0; request.MaxRepetitions = 5; }
+                    request.VbList.Add(cursor);
+                    Pdu response;
+                    if (version == 3) { var packet = (SnmpV3Packet)target.Request(request, secure); response = packet == null ? null : packet.ScopedPdu; }
+                    else if (version == 1) { var packet = (SnmpV1Packet)target.Request(request, parameters); response = packet == null ? null : packet.Pdu; }
+                    else { var packet = (SnmpV2Packet)target.Request(request, parameters); response = packet == null ? null : packet.Pdu; }
+                    if (response == null) { error = "No response received from SNMP agent"; break; }
+                    if (response.Type == PduType.Report) { error = ReportError(response); break; }
+                    // SNMPv1 reports noSuchName to indicate the end of a subtree.
+                    if (version == 1 && response.ErrorStatus == 2) break;
+                    if (response.ErrorStatus != 0) { error = SnmpError.ErrorMessage(response.ErrorStatus) + " at index " + response.ErrorIndex; break; }
+                    if (response.VbList.Count == 0) break;
+                    foreach (Vb binding in response.VbList)
                     {
-                        pdu.RequestId += 1;
-                    }
-                    // Clear Oids from the Pdu class.
-                    pdu.VbList.Clear();
-                    // Initialize request PDU with the last retrieved Oid
-                    pdu.VbList.Add(lastOid);
-                    // Make SNMP request
-                    SnmpV3Packet result = (SnmpV3Packet)target.Request(pdu, param);
-                    // You should catch exceptions in the Request if using in real application.
-
-                    // If result is null then agent didn't reply or we couldn't parse the reply.
-                    if (result != null)
-                    {
-                        // ErrorStatus other then 0 is an error returned by 
-                        // the Agent - see SnmpConstants for error definitions
-                        if (result.Pdu.ErrorStatus != 0)
-                        {
-                            // agent reported an error with the request
-                            error = "[ERROR(SNMP)] WALK Version 3: " + result.Pdu.ErrorStatus + "(" + result.Pdu.ErrorIndex + ") [Ip: " + ip + "] [Port: " + port + "]";
-                            lastOid = null;
-                            break;
-                        }
-                        else
-                        {
-                            // Walk through returned variable bindings
-                            foreach (Vb v in result.Pdu.VbList)
-                            {
-                                // Check that retrieved Oid is "child" of the root OID
-                                if (rootOid.IsRootOf(v.Oid))
-                                {
-                                    if (!r.ContainsKey(v.Oid.ToString()))
-                                        r.Add(v.Oid.ToString(), v.Value.ToString());
-                                    if (v.Value.Type == SnmpConstants.SMI_ENDOFMIBVIEW)
-                                        lastOid = null;
-                                    else
-                                        lastOid = v.Oid;
-                                }
-                                else
-                                {
-                                    // we have reached the end of the requested
-                                    // MIB tree. Set lastOid to null and exit loop
-                                    lastOid = null;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        error = "[ERROR(SNMP)] WALK Version 3: No response received from SNMP agent [Ip: " + ip + "] [Port: " + port + "]";
+                        if (!root.IsRootOf(binding.Oid) || binding.Value.Type == SnmpConstants.SMI_ENDOFMIBVIEW ||
+                            binding.Value.ToString().IndexOf("No-Such", StringComparison.OrdinalIgnoreCase) >= 0)
+                        { cursor = null; break; }
+                        if (!OidAdvances(cursor.ToString(), binding.Oid.ToString()))
+                        { error = "protocol_error: SNMP walk did not advance"; cursor = null; break; }
+                        values[binding.Oid.ToString()] = binding.Value.ToString();
+                        cursor = binding.Oid;
                     }
                 }
-                target.Close();
             }
-            catch (Exception ex)
-            {
-                error = $"[ERROR(SNMP)] GET Version 3: {ex.Message} [Ip: {ip}] [Port: {port}]";
-            }
-
-            return r;
+            catch (Exception ex) { error = ex.Message; }
+            finally { if (target != null) target.Close(); }
+            return values;
         }
+
+        internal static bool OidAdvances(string previous, string next)
+        {
+            var left = previous.Trim('.').Split('.');
+            var right = next.Trim('.').Split('.');
+            for (int i = 0; i < Math.Min(left.Length, right.Length); i++)
+            {
+                var comparison = ulong.Parse(right[i]).CompareTo(ulong.Parse(left[i]));
+                if (comparison != 0) return comparison > 0;
+            }
+            return right.Length > left.Length;
+        }
+
         private Dictionary<int, ifTypeEl> LoadIfTypes() => new Dictionary<int, ifTypeEl>()
             {
                     { 1, new ifTypeEl() { Nombre = "other", Tipo = "Varios", Descripcion = "Puede abarcar tecnolog?as propietarias, experimentales o simplemente aquellas que no han sido estandarizadas." } },

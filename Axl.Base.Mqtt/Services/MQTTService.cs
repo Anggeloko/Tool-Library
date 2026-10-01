@@ -180,6 +180,12 @@ namespace Axl.Base.Mqtt.Services
 
         public void Publish(string topic, string payload)
         {
+            Publish(topic, payload, Qos, false, UseCompression);
+        }
+
+        // Per-message options are additive. Existing callers keep their QoS/compression behavior.
+        public void Publish(string topic, string payload, MqttQos qos, bool retain, bool compress)
+        {
             if (!IsConnected)
             {
                 Console.WriteLine("[MQTT] Attempting publish without connection.");
@@ -188,12 +194,41 @@ namespace Axl.Base.Mqtt.Services
 
             var message = Encoding.UTF8.GetBytes(payload);
 
-            if (UseCompression)
+            if (compress)
             {
                 message = InternalCompress(message);
             }
 
-            _mqttClient.Publish(topic, message, MapQos(Qos), false);
+            _mqttClient.Publish(topic, message, MapQos(qos), retain);
+        }
+
+        // Used for controlled shutdown so DISCONNECT does not overtake the final retained status.
+        public bool PublishConfirmed(string topic, string payload, int timeoutMs = 2000)
+        {
+            if (!IsConnected) return false;
+            var gate = new object();
+            ushort messageId = 0;
+            bool disposed = false;
+            var acknowledged = new System.Collections.Generic.HashSet<ushort>();
+            using (var completed = new System.Threading.ManualResetEvent(false))
+            {
+                MqttClient.MqttMsgPublishedEventHandler handler = (sender, args) => {
+                    lock (gate)
+                    {
+                        if (disposed) return;
+                        acknowledged.Add(args.MessageId);
+                        if (messageId != 0 && args.MessageId == messageId) completed.Set();
+                    }
+                };
+                _mqttClient.MqttMsgPublished += handler;
+                try
+                {
+                    var id = _mqttClient.Publish(topic, Encoding.UTF8.GetBytes(payload), MqttMsgBase.QOS_LEVEL_AT_LEAST_ONCE, true);
+                    lock (gate) { messageId = id; if (acknowledged.Contains(id)) completed.Set(); }
+                    return completed.WaitOne(timeoutMs);
+                }
+                finally { _mqttClient.MqttMsgPublished -= handler; lock (gate) disposed = true; }
+            }
         }
 
         private byte MapQos(MqttQos qos)

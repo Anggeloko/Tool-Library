@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Axl.Base.Interfaces;
@@ -82,6 +82,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
         private const string TableThermal = "1.3.6.1.4.1.232.6.2.6.8.1";            // .4 Celsius, .8 hardware location
         private const string TablePsu = "1.3.6.1.4.1.232.6.2.9.3.1";                // .4 condition, .5 status (not watts)
         private const string TableFans = "1.3.6.1.4.1.232.6.2.6.7.1";               // .9 condition, .12 current speed
+        private const string TableLegacyFans = "1.3.6.1.4.1.232.6.2.6.6.1"; // .5 condition, .7 RPM
         private const string TableHpeDisks = "1.3.6.1.4.1.232.3.2.5.1.1";           // .6 physical drive status
         private const string TableDellThermal = "1.3.6.1.4.1.674.10892.5.4.700.20.1"; // .6 tenths Celsius, .8 location
         private const string TableDellPsu = "1.3.6.1.4.1.674.10892.5.4.600.12.1";    // .5 status
@@ -138,7 +139,8 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             scalarOids.AddRange(OidCandidatesFirmware);
 
             string getErr;
-            var scalarResults = _snmpService.Get(
+            var reader = new DiagnosticSnmpService(_snmpService, metrics);
+            var scalarResults = reader.Get(
                 deviceId, ip, port, version, scalarOids,
                 out getErr, comm, user, password, privacy,
                 timeoutMs, false, authProto, privProto);
@@ -163,7 +165,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
 
             // 2. WALK TEMPERATURAS
             string walkErr;
-            var thermalResults = _snmpService.Walk(
+            var thermalResults = reader.Walk(
                 deviceId, ip, port, version, thermalTable,
                 out walkErr, comm, user, password, privacy,
                 timeoutMs, false, authProto, privProto);
@@ -174,7 +176,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             }
 
             // 3. WALK FUENTES DE PODER (PSU Table)
-            var psuResults = _snmpService.Walk(
+            var psuResults = reader.Walk(
                 deviceId, ip, port, version, psuTable,
                 out walkErr, comm, user, password, privacy,
                 timeoutMs, false, authProto, privProto);
@@ -185,7 +187,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             }
 
             // 4. WALK VENTILADORES (Fans Table)
-            var fanResults = _snmpService.Walk(
+            var fanResults = reader.Walk(
                 deviceId, ip, port, version, fanTable,
                 out walkErr, comm, user, password, privacy,
                 timeoutMs, false, authProto, privProto);
@@ -195,7 +197,15 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 ParseFanTable(fanResults, metrics, isDell);
             }
 
-            var diskResults = _snmpService.Walk(
+            // The alternative table is queried only after a valid primary response without RPM.
+            if (!isDell && string.IsNullOrEmpty(walkErr) && metrics.RawDetails.ContainsKey("SnmpContact") && !metrics.RawDetails.ContainsKey("fan_avg_rpm"))
+            {
+                var alternate = reader.Walk(deviceId, ip, port, version, TableLegacyFans,
+                    out walkErr, comm, user, password, privacy, timeoutMs, false, authProto, privProto);
+                if (alternate != null && alternate.Count > 0) ParseFanTable(alternate, metrics, false, true);
+            }
+
+            var diskResults = reader.Walk(
                 deviceId, ip, port, version, isDell ? TableDellDisks : TableHpeDisks,
                 out walkErr, comm, user, password, privacy,
                 timeoutMs, false, authProto, privProto);
@@ -203,7 +213,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 ParseDiskTable(diskResults, metrics, isDell);
 
             // 5. WALK PROCESADORES (CPU Table)
-            var cpuResults = _snmpService.Walk(
+            var cpuResults = reader.Walk(
                 deviceId, ip, port, version, TableCpu,
                 out walkErr, comm, user, password, privacy,
                 timeoutMs, false, authProto, privProto);
@@ -214,7 +224,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             }
 
             // 6. WALK INTERFACES DE RED (ifEntry - MIB-II Universal para Servidores y Routers)
-            var ifResults = _snmpService.Walk(
+            var ifResults = reader.Walk(
                 deviceId, ip, port, version, TableIf,
                 out walkErr, comm, user, password, privacy,
                 timeoutMs, false, authProto, privProto);
@@ -225,6 +235,39 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             }
 
             return metrics;
+        }
+
+        // Keep protocol evidence separate from optional, unsupported OIDs. Stop repeated
+        // queries after confirmed authentication errors, while preserving earlier valid data.
+        private sealed class DiagnosticSnmpService
+        {
+            private readonly ISnmpService _inner;
+            private readonly IloMetrics _metrics;
+            private string _fatal;
+            public DiagnosticSnmpService(ISnmpService inner, IloMetrics metrics) { _inner = inner; _metrics = metrics; }
+            public Dictionary<string, string> Get(string device, string ip, int port, int version, List<string> oids, out string error, string comm, string user, string password, string privacy, int timeout, bool demo, string auth, string priv)
+            {
+                var result = _inner.Get(device, ip, port, version, oids, out error, comm, user, password, privacy, timeout, demo, auth, priv);
+                Observe("GetScalars", result, error);
+                return result;
+            }
+            public Dictionary<string, string> Walk(string device, string ip, int port, int version, string oid, out string error, string comm, string user, string password, string privacy, int timeout, bool demo, string auth, string priv)
+            {
+                if (_fatal != null) { error = _fatal; return new Dictionary<string, string>(); }
+                var result = _inner.Walk(device, ip, port, version, oid, out error, comm, user, password, privacy, timeout, demo, auth, priv);
+                Observe("Walk_" + oid, result, error);
+                return result;
+            }
+            private void Observe(string operation, Dictionary<string, string> result, string error)
+            {
+                if (string.IsNullOrEmpty(error) && result != null) _metrics.RawDetails["SnmpContact"] = true;
+                else if (result != null)
+                    foreach (var value in result.Values) if (!IsSnmpErrorValue(value)) { _metrics.RawDetails["SnmpContact"] = true; break; }
+                if (string.IsNullOrEmpty(error)) return;
+                _metrics.RawDetails["Error_" + operation] = error;
+                var normalized = error.ToLowerInvariant();
+                if (normalized.Contains("authentication") || normalized.Contains("wrongdigest") || normalized.Contains("unknownuser") || normalized.Contains("decryption") || normalized.Contains("password required")) _fatal = error;
+            }
         }
 
         #region Métodos de Parseo
@@ -377,11 +420,11 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             if (worst.HasValue) metrics.RawDetails["psu_health"] = worst.Value;
         }
 
-        private void ParseFanTable(Dictionary<string, string> data, IloMetrics metrics, bool isDell)
+        private void ParseFanTable(Dictionary<string, string> data, IloMetrics metrics, bool isDell, bool alternate = false)
         {
-            string table = isDell ? TableDellFans : TableFans;
-            string speedPrefix = table + (isDell ? ".6." : ".12.");
-            string statusPrefix = table + (isDell ? ".5." : ".9.");
+            string table = isDell ? TableDellFans : alternate ? TableLegacyFans : TableFans;
+            string speedPrefix = table + (isDell ? ".6." : alternate ? ".7." : ".12.");
+            string statusPrefix = table + (isDell || alternate ? ".5." : ".9.");
             double totalSpeed = 0;
             int count = 0;
             double? worst = null;
@@ -390,28 +433,28 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             {
                 if (kvp.Key.StartsWith(speedPrefix, StringComparison.Ordinal))
                 {
-                    if (double.TryParse(kvp.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double spd))
+                    if (double.TryParse(kvp.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double spd) && spd >= 0 && !double.IsInfinity(spd) && !double.IsNaN(spd))
                     {
-                        metrics.RawDetails["fan_" + MetricIndex(kvp.Key.Substring(speedPrefix.Length)) + (isDell ? "_rpm" : "_speed_pct")] = spd;
+                        metrics.RawDetails["fan_" + (alternate ? "alt_" : "") + MetricIndex(kvp.Key.Substring(speedPrefix.Length)) + "_rpm"] = spd;
                         totalSpeed += spd;
                         count++;
                     }
                 }
                 else if (kvp.Key.StartsWith(statusPrefix, StringComparison.Ordinal))
                 {
+                    if (alternate && kvp.Value != "2" && kvp.Value != "4") continue;
                     var health = HealthScore(kvp.Value, isDell);
                     if (!health.HasValue) continue;
-                    metrics.RawDetails["fan_" + MetricIndex(kvp.Key.Substring(statusPrefix.Length)) + "_health"] = health.Value;
+                    metrics.RawDetails["fan_" + (alternate ? "alt_" : "") + MetricIndex(kvp.Key.Substring(statusPrefix.Length)) + "_health"] = health.Value;
                     worst = worst.HasValue ? Math.Min(worst.Value, health.Value) : health;
                 }
             }
 
             if (count > 0)
             {
-                if (isDell) metrics.RawDetails["fan_avg_rpm"] = Math.Round(totalSpeed / count, 2);
-                else metrics.FanAvgPct = Math.Round(totalSpeed / count, 2);
+                metrics.RawDetails["fan_avg_rpm"] = Math.Round(totalSpeed / count, 2);
             }
-            if (worst.HasValue) metrics.RawDetails["fan_health"] = worst.Value;
+            if (worst.HasValue && (!alternate || !metrics.RawDetails.ContainsKey("fan_health"))) metrics.RawDetails["fan_health"] = worst.Value;
         }
 
         private void ParseDiskTable(Dictionary<string, string> data, IloMetrics metrics, bool isDell)

@@ -41,7 +41,7 @@ namespace Axl.Base.Ilo.Infrastructure.Adapters
             string privProto = "DES",
             int timeoutMs = 2000)
         {
-            IloMetrics metrics = new IloMetrics();
+            IloMetrics metrics = new IloMetrics { DimmHealth = "Unknown", StorageHealth = "Unknown", SystemHealthRollup = "Unknown" };
             metrics.ServerIp = ip;
             metrics.Timestamp = DateTime.UtcNow;
 
@@ -79,6 +79,7 @@ namespace Axl.Base.Ilo.Infrastructure.Adapters
                         {
                             if (response.StatusCode == HttpStatusCode.OK)
                             {
+                                metrics.RawDetails["RedfishContact"] = true;
                                 using (Stream stream = response.GetResponseStream())
                                 using (StreamReader reader = new StreamReader(stream))
                                 {

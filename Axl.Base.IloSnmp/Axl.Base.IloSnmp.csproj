@@ -1,11 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net40</TargetFramework>
     <RootNamespace>Axl.Base.IloSnmp</RootNamespace>
     <AssemblyName>Axl.Base.IloSnmp</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Axl.Base.IloSnmp</PackageId>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <Authors>Axl</Authors>
     <Description>HPE iLO, Dell iDRAC and Generic hardware monitoring library via SNMP (v1/v2c/v3) with candidate fallback.</Description>
     <PackageOutputPath>c:\Users\Axl\Desktop\Projects\LocalNugetFeed</PackageOutputPath>
