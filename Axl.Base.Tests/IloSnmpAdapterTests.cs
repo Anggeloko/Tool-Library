@@ -27,11 +27,13 @@ namespace Axl.Base.Tests
             var scalarData = new Dictionary<string, string>
             {
                 { "1.3.6.1.4.1.232.6.1.3.0", "2" },            // OK
-                { "1.3.6.1.4.1.232.9.2.2.1.0", "350" },         // 350 Watts
-                { "1.3.6.1.4.1.232.9.2.2.3.0", "2" },           // On
+                { "1.3.6.1.4.1.232.6.2.15.1.0", "2" },        // Power meter supported
+                { "1.3.6.1.4.1.232.6.2.15.2.0", "2" },        // Reading present
+                { "1.3.6.1.4.1.232.6.2.15.3.0", "350" },      // 350 Watts
+                { "1.3.6.1.4.1.232.9.2.2.32.0", "3" },        // HPE powered on
                 { "1.3.6.1.4.1.232.6.2.14.4.0", "2" },         // Memory OK
                 { "1.3.6.1.4.1.232.3.1.3.0", "2" },            // Storage OK
-                { "1.3.6.1.4.1.232.1.2.2.4.0", "P89 v2.80" }   // ROM
+                { "1.3.6.1.4.1.232.1.2.6.1.0", "P89 v2.80" }   // System ROM
             };
 
             string walkErr = "";
@@ -60,8 +62,8 @@ namespace Axl.Base.Tests
 
             var cpuData = new Dictionary<string, string>
             {
-                { "1.3.6.1.4.1.232.1.2.2.1.1.2.1", "Intel Xeon Gold 6242" },
-                { "1.3.6.1.4.1.232.1.2.2.1.1.3.1", "2800" }
+                { "1.3.6.1.4.1.232.1.2.2.1.1.3.1", "Intel Xeon Gold 6242" },
+                { "1.3.6.1.4.1.232.1.2.2.1.1.4.1", "2800" }
             };
 
             var ifData = new Dictionary<string, string>

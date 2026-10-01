@@ -21,6 +21,9 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
         public const string OidSysObjectId = "1.3.6.1.2.1.1.2.0";
         public const string OidSysUpTime = "1.3.6.1.2.1.1.3.0";
         public const string OidSysName = "1.3.6.1.2.1.1.5.0";
+        private const string OidHpeIloFirmware = "1.3.6.1.4.1.232.9.2.2.2.0";
+        private const string OidHpeSystemRom = "1.3.6.1.4.1.232.1.2.6.1.0";
+        private const string OidHpeServerModel = "1.3.6.1.4.1.232.2.2.4.2.0";
 
         // --- OIDs CANDIDATOS (CON FALLBACK MULTIMARCA: HPE, DELL, GENERIC) ---
         // Salud Global: 1) HPE ProLiant cpqHeSysStatus, 2) Dell iDRAC globalSystemStatus, 3) Dell Server Administrator
@@ -31,18 +34,22 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             "1.3.6.1.4.1.674.10892.1.200.10.1.2.1"
         };
 
-        // Potencia Watts: 1) HPE cpqPwrSmPwrWatts, 2) HPE iLO alt, 3) Dell iDRAC instantaneousPower
+        private const string OidPowerMeterSupport = "1.3.6.1.4.1.232.6.2.15.1.0";
+        private const string OidPowerMeterStatus = "1.3.6.1.4.1.232.6.2.15.2.0";
+        private const string OidPowerWatts = "1.3.6.1.4.1.232.6.2.15.3.0";
+        private const string OidPowerState = "1.3.6.1.4.1.232.9.2.2.32.0";
+
+        // CPQHLTH power meter; CPQSM2 ROM date and NIC tables are not power readings.
         public static readonly string[] OidCandidatesPowerWatts = new[]
         {
-            "1.3.6.1.4.1.232.9.2.2.1.0",
-            "1.3.6.1.4.1.232.9.2.5.1.0",
+            OidPowerWatts,
             "1.3.6.1.4.1.674.10892.5.4.600.30.1.6.1"
         };
 
-        // Estado Energía (Power State): 1) HPE cpqPwrSmPwrState, 2) Dell systemPowerState
+        // HPE: 2=off, 3=on, 4=power denied; Dell keeps its own enumeration.
         public static readonly string[] OidCandidatesPowerState = new[]
         {
-            "1.3.6.1.4.1.232.9.2.2.3.0",
+            OidPowerState,
             "1.3.6.1.4.1.674.10892.5.4.200.10.1.9.1"
         };
 
@@ -62,25 +69,24 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             "1.3.6.1.4.1.674.10892.5.2.4.0"
         };
 
-        // Versión Firmware / ROM: 1) HPE cpqSiSysRomVer, 2) Dell systemBIOSVersion, 3) sysDescr universal
+        // iLO firmware, system ROM, Dell BIOS and universal description.
+        // 232.1.2.2.4.0 is CPU condition, not a firmware version.
         public static readonly string[] OidCandidatesFirmware = new[]
         {
-            "1.3.6.1.4.1.232.1.2.2.4.0",
+            OidHpeIloFirmware,
+            OidHpeSystemRom,
             "1.3.6.1.4.1.674.10892.5.1.1.8.0",
             "1.3.6.1.2.1.1.1.0"
         };
 
         // Mantener compatibilidad con constantes previas
         private const string OidSysStatus = "1.3.6.1.4.1.232.6.1.3.0";
-        private const string OidPowerWatts = "1.3.6.1.4.1.232.9.2.2.1.0";
-        private const string OidPowerState = "1.3.6.1.4.1.232.9.2.2.3.0";
         private const string OidDimmHealth = "1.3.6.1.4.1.232.6.2.14.4.0";
         private const string OidDriveHealth = "1.3.6.1.4.1.232.3.1.3.0";
-        private const string OidRomFirmware = "1.3.6.1.4.1.232.1.2.2.4.0";
 
         // --- TABLAS WALK ---
         private const string TableThermal = "1.3.6.1.4.1.232.6.2.6.8.1";            // .4 Celsius, .8 hardware location
-        private const string TablePsu = "1.3.6.1.4.1.232.6.2.9.3.1";                // .4 condition, .5 status (not watts)
+        private const string TablePsu = "1.3.6.1.4.1.232.6.2.9.3.1"; // .4 health, .6 volts, .7 used watts, .8 maximum watts
         private const string TableFans = "1.3.6.1.4.1.232.6.2.6.7.1";               // .9 condition, .12 current speed
         private const string TableLegacyFans = "1.3.6.1.4.1.232.6.2.6.6.1"; // .5 condition, .7 RPM
         private const string TableHpeDisks = "1.3.6.1.4.1.232.3.2.5.1.1";           // .6 physical drive status
@@ -88,7 +94,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
         private const string TableDellPsu = "1.3.6.1.4.1.674.10892.5.4.600.12.1";    // .5 status
         private const string TableDellFans = "1.3.6.1.4.1.674.10892.5.4.700.12.1";   // .5 status, .6 RPM
         private const string TableDellDisks = "1.3.6.1.4.1.674.10892.5.5.1.20.130.4.1"; // .24 component status
-        private const string TableCpu = "1.3.6.1.4.1.232.1.2.2.1.1";                // cpqSiCpuTable (.2 = Name, .3 = Speed, .6 = Status)
+        private const string TableCpu = "1.3.6.1.4.1.232.1.2.2.1.1"; // CPQSTDEQ .3 name, .4 MHz, .6 status
         private const string TableIf = "1.3.6.1.2.1.2.2.1";                         // ifEntry (.2 = ifDescr, .8 = ifOperStatus)
 
         public IloSnmpAdapter(ISnmpService snmpService = null)
@@ -133,10 +139,13 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
 
             scalarOids.AddRange(OidCandidatesSysStatus);
             scalarOids.AddRange(OidCandidatesPowerWatts);
+            scalarOids.Add(OidPowerMeterSupport);
+            scalarOids.Add(OidPowerMeterStatus);
             scalarOids.AddRange(OidCandidatesPowerState);
             scalarOids.AddRange(OidCandidatesDimmHealth);
             scalarOids.AddRange(OidCandidatesDriveHealth);
             scalarOids.AddRange(OidCandidatesFirmware);
+            scalarOids.Add(OidHpeServerModel);
 
             string getErr;
             var reader = new DiagnosticSnmpService(_snmpService, metrics);
@@ -299,22 +308,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 metrics.SystemHealthRollup = MapStatusToHealth(statusVal, isDell);
             }
 
-            // 2. Power Watts con Fallback
-            string pwrVal = TryGetFirstValid(data, OidCandidatesPowerWatts);
-            if (!string.IsNullOrEmpty(pwrVal))
-            {
-                if (double.TryParse(pwrVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double pwr))
-                    metrics.PowerWatts = pwr;
-            }
-
-            // 3. Power State con Fallback (1=other, 2=on, 3=off, 4=bouncing)
-            string pState = TryGetFirstValid(data, OidCandidatesPowerState);
-            if (!string.IsNullOrEmpty(pState))
-            {
-                if (pState == "2" || pState.Equals("on", StringComparison.OrdinalIgnoreCase)) metrics.PowerState = "On";
-                else if (pState == "3" || pState.Equals("off", StringComparison.OrdinalIgnoreCase)) metrics.PowerState = "Off";
-                else metrics.PowerState = "Unknown";
-            }
+            ParsePowerScalars(data, metrics, isDell);
 
             // 4. Memory / DIMM Health con Fallback
             string memCond = TryGetFirstValid(data, OidCandidatesDimmHealth);
@@ -333,36 +327,92 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             }
 
             // 6. Firmware Version con Fallback
-            string romVer = TryGetFirstValid(data, OidCandidatesFirmware);
+            string romVer = isDell ? TryGetFirstValid(data, "1.3.6.1.4.1.674.10892.5.1.1.8.0", OidSysDescr) :
+                TryGetFirstValid(data, OidHpeIloFirmware, OidHpeSystemRom, OidSysDescr);
             if (!string.IsNullOrEmpty(romVer))
             {
                 metrics.FirmwareVersion = romVer.Trim();
             }
+            if (!isDell)
+            {
+                CopyScalarDetail(data, metrics, OidHpeIloFirmware, "IloFirmwareVersion");
+                CopyScalarDetail(data, metrics, OidHpeSystemRom, "SystemRomVersion");
+                CopyScalarDetail(data, metrics, OidHpeServerModel, "ServerModel");
+            }
+        }
+
+        private static void CopyScalarDetail(Dictionary<string, string> data, IloMetrics metrics, string oid, string key)
+        {
+            string value = TryGetFirstValid(data, oid);
+            if (value != null) metrics.RawDetails[key] = value;
+        }
+
+        private static void ParsePowerScalars(Dictionary<string, string> data, IloMetrics metrics, bool isDell)
+        {
+            string support = TryGetFirstValid(data, OidPowerMeterSupport);
+            string available = TryGetFirstValid(data, OidPowerMeterStatus);
+            if (!isDell)
+            {
+                metrics.RawDetails["PowerMeterSupport"] = support == "2" ? "supported" : support == "3" ? "unsupported" : "unknown";
+                metrics.RawDetails["PowerMeterStatus"] = available == "2" ? "present" : available == "3" ? "absent" : "unknown";
+            }
+
+            double watts;
+            string powerOid = isDell ? OidCandidatesPowerWatts[1] : OidPowerWatts;
+            // Pozos returns 0 when status=absent. Do not invent a measured zero or
+            // substitute the sum of PSU used capacity for the server power meter.
+            if ((isDell || (support == "2" && available == "2")) &&
+                TryNonNegativeMeasurement(TryGetFirstValid(data, powerOid), out watts))
+                metrics.PowerWatts = watts;
+
+            string state = TryGetFirstValid(data, isDell ? OidCandidatesPowerState[1] : OidPowerState);
+            if (state == (isDell ? "2" : "3") || string.Equals(state, "on", StringComparison.OrdinalIgnoreCase))
+                metrics.PowerState = "On";
+            else if (state == (isDell ? "3" : "2") || string.Equals(state, "off", StringComparison.OrdinalIgnoreCase))
+                metrics.PowerState = "Off";
+            else
+                metrics.PowerState = "Unknown";
+
+            if (!isDell && state == "4")
+                metrics.RawDetails["PowerStateReason"] = "insufficient_power_or_power_on_denied";
+        }
+
+        private static bool TryNonNegativeMeasurement(string value, out double number)
+        {
+            return double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out number) &&
+                number >= 0 && !double.IsNaN(number) && !double.IsInfinity(number);
         }
 
         private void ParseThermalTable(Dictionary<string, string> data, IloMetrics metrics, bool isDell)
         {
             var names = new Dictionary<string, string>();
             var values = new Dictionary<string, double>();
+            var locales = new Dictionary<string, string>();
 
             string table = isDell ? TableDellThermal : TableThermal;
             string descPrefix = table + ".8.";
             string valPrefix = table + (isDell ? ".6." : ".4.");
+            string localePrefix = table + ".3.";
 
             foreach (var kvp in data)
             {
                 if (kvp.Key.StartsWith(descPrefix))
                 {
                     string index = kvp.Key.Substring(descPrefix.Length);
-                    names[index] = kvp.Value;
+                    if (!IsSnmpErrorValue(kvp.Value)) names[index] = kvp.Value;
                 }
                 else if (kvp.Key.StartsWith(valPrefix))
                 {
                     string index = kvp.Key.Substring(valPrefix.Length);
-                    if (double.TryParse(kvp.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double tVal))
+                    if (double.TryParse(kvp.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double tVal) &&
+                        !double.IsNaN(tVal) && !double.IsInfinity(tVal) && (isDell || tVal != -99))
                     {
                         values[index] = isDell ? tVal / 10.0 : tVal;
                     }
+                }
+                else if (!isDell && kvp.Key.StartsWith(localePrefix, StringComparison.Ordinal))
+                {
+                    locales[kvp.Key.Substring(localePrefix.Length)] = kvp.Value;
                 }
             }
 
@@ -373,6 +423,13 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 string sensorName = names.ContainsKey(idx) ? names[idx] : ("Sensor_" + idx);
                 double temp = values[idx];
                 metrics.RawDetails["temperature_sensor_" + MetricIndex(idx) + "_c"] = temp;
+                if (!isDell && locales.ContainsKey(idx))
+                    metrics.RawDetails["temperature_sensor_" + MetricIndex(idx) + "_location"] = HpeTemperatureLocation(locales[idx]);
+                if (names.ContainsKey(idx))
+                    metrics.RawDetails["temperature_sensor_" + MetricIndex(idx) + "_label"] = sensorName;
+
+                // Locale identifies a region, not a CPU number or an inlet/exhaust.
+                // Only explicit hardware labels assign the existing summary fields.
 
                 if (sensorName.IndexOf("Inlet", StringComparison.OrdinalIgnoreCase) >= 0 || sensorName.IndexOf("Ambient", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
@@ -402,6 +459,25 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             }
         }
 
+        private static string HpeTemperatureLocation(string code)
+        {
+            switch (code)
+            {
+                case "3": return "System";
+                case "4": return "SystemBoard";
+                case "5": return "IOBoard";
+                case "6": return "CPU";
+                case "7": return "Memory";
+                case "8": return "Storage";
+                case "9": return "RemovableMedia";
+                case "10": return "PowerSupply";
+                case "11": return "Ambient";
+                case "12": return "Chassis";
+                case "13": return "BridgeCard";
+                default: return "Unknown";
+            }
+        }
+
         private void ParsePsuTable(Dictionary<string, string> data, IloMetrics metrics, bool isDell)
         {
             string statusPrefix = (isDell ? TableDellPsu : TablePsu) + (isDell ? ".5." : ".4.");
@@ -409,6 +485,28 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
 
             foreach (var kvp in data)
             {
+                if (!isDell)
+                {
+                    string suffix = null;
+                    string index = null;
+                    foreach (var column in new[] { "6", "7", "8" })
+                    {
+                        string prefix = TablePsu + "." + column + ".";
+                        if (!kvp.Key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                        index = kvp.Key.Substring(prefix.Length);
+                        suffix = column == "6" ? "input_volts" : column == "7" ? "used_watts" : "capacity_watts";
+                        break;
+                    }
+                    double measurement;
+                    if (suffix != null && TryNonNegativeMeasurement(kvp.Value, out measurement))
+                    {
+                        metrics.RawDetails["psu_" + MetricIndex(index) + "_" + suffix] = measurement;
+                        // Existing Base fields use instantaneous PSU watts, never averages.
+                        // Only chassis 0 slots 1/2 have unambiguous legacy field identities.
+                        if (suffix == "used_watts" && index == "0.1") metrics.Psu1Watts = measurement;
+                        if (suffix == "used_watts" && index == "0.2") metrics.Psu2Watts = measurement;
+                    }
+                }
                 if (kvp.Key.StartsWith(statusPrefix, StringComparison.Ordinal))
                 {
                     var health = HealthScore(kvp.Value, isDell);
@@ -502,26 +600,24 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
 
         private void ParseCpuTable(Dictionary<string, string> data, IloMetrics metrics)
         {
-            // OID .2 = cpqSiCpuName
-            // OID .3 = cpqSiCpuSpeed (MHz)
-            // OID .6 = cpqSiCpuStatus
+            // CPQSTDEQ-MIB: .2 is slot, .3 name, .4 MHz, .6 status.
             var names = new Dictionary<string, string>();
             var speeds = new Dictionary<string, double>();
 
-            string namePrefix = "1.3.6.1.4.1.232.1.2.2.1.1.2.";
-            string speedPrefix = "1.3.6.1.4.1.232.1.2.2.1.1.3.";
+            string namePrefix = TableCpu + ".3.";
+            string speedPrefix = TableCpu + ".4.";
 
             foreach (var kvp in data)
             {
                 if (kvp.Key.StartsWith(namePrefix))
                 {
                     string idx = kvp.Key.Substring(namePrefix.Length);
-                    names[idx] = kvp.Value;
+                    if (!IsSnmpErrorValue(kvp.Value)) names[idx] = kvp.Value.Trim();
                 }
                 else if (kvp.Key.StartsWith(speedPrefix))
                 {
                     string idx = kvp.Key.Substring(speedPrefix.Length);
-                    if (double.TryParse(kvp.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double spd))
+                    if (TryNonNegativeMeasurement(kvp.Value, out double spd))
                     {
                         speeds[idx] = spd;
                     }
