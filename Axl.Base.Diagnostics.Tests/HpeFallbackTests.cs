@@ -34,6 +34,7 @@ namespace Axl.Base.Diagnostics.Tests
             Assert.That(metrics.FanAvgPct, Is.Null); Assert.That(metrics.RawDetails["fan_avg_rpm"], Is.EqualTo(11000d));
             Assert.That(metrics.RawDetails["fan_alt_1_1_rpm"], Is.EqualTo(10000d));
             Assert.That(metrics.RawDetails["fan_health"], Is.EqualTo(.5d)); Assert.That(agent.Calls, Does.Contain(Alternate));
+            Assert.That(metrics.RawDetails["FanRpmStatus"], Is.EqualTo("available"));
         }
 
         [Test] public void PrimaryRpmAvoidsSecondTableAndDoubleCounting()
@@ -59,6 +60,7 @@ namespace Axl.Base.Diagnostics.Tests
             var metrics = new IloSnmpAdapter(agent).GetMetrics("server", "192.0.2.1", version: 2);
             Assert.That(agent.Calls, Does.Not.Contain(Alternate)); Assert.That(metrics.RawDetails["Error_Walk_" + Primary], Is.EqualTo("timeout"));
             Assert.That(metrics.RawDetails.ContainsKey("SnmpContact"));
+            Assert.That(metrics.RawDetails["FanRpmStatus"], Is.EqualTo("read_error"));
         }
 
         [Test] public void AuthenticationFailureIsPropagatedAndStopsFurtherQueries()

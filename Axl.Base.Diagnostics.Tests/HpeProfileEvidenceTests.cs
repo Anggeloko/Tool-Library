@@ -59,6 +59,53 @@ namespace Axl.Base.Diagnostics.Tests
         private static IloMetrics Read(Agent agent)
         { return new IloSnmpAdapter(agent).GetMetrics("lab-server", "192.0.2.1", version: 3); }
 
+        [Test] public void DiagnosticsSeparateImlFromComponentHealthAndIdentifyTheResponder()
+        {
+            var agent = Pozos();
+            agent.Scalars[IloSnmpAdapter.OidSysDescr] = "Integrated Lights-Out 5 2.41 Mar 08 2021";
+            agent.Scalars["1.3.6.1.4.1.232.2.2.2.1.0"] = "LAB-SERIAL";
+            agent.Scalars["1.3.6.1.4.1.232.6.1.3.0"] = "4";
+            agent.Scalars["1.3.6.1.4.1.232.6.2.11.2.0"] = "4";
+            agent.Scalars["1.3.6.1.4.1.232.6.2.6.1.0"] = "2";
+            agent.Scalars["1.3.6.1.4.1.232.6.2.6.4.0"] = "2";
+            agent.Tables[Thermal][Thermal + ".6.0.1"] = "2";
+            agent.Tables[Thermal][Thermal + ".6.0.2"] = "4";
+            var result = Read(agent);
+            Assert.That(result.RawDetails["SysDescr"], Does.Contain("2.41"));
+            Assert.That(result.RawDetails["SerialNumber"], Is.EqualTo("LAB-SERIAL"));
+            Assert.That(result.RawDetails["FirmwareSource"], Is.EqualTo("ilo"));
+            Assert.That(result.SystemHealthRollup, Is.EqualTo("Critical"));
+            Assert.That(result.RawDetails["ImlHealth"], Is.EqualTo("Critical"));
+            Assert.That(result.RawDetails["FanHealthStatus"], Is.EqualTo("OK"));
+            Assert.That(result.RawDetails["thermal_health"], Is.EqualTo(0d));
+            Assert.That(result.RawDetails["temperature_sensor_0_1_health"], Is.EqualTo(1d));
+            Assert.That(result.RawDetails["SnmpVersion"], Is.EqualTo("3"));
+            Assert.That(result.RawDetails.ContainsKey("ThermalHealth"), Is.True);
+        }
+
+        [TestCase("2", "state_or_low_percentage")]
+        [TestCase("68", "percentage_candidate")]
+        [TestCase("-1", "unrecognized")]
+        public void DisputedFanColumnRemainsEvidenceWithoutAssigningPercentOrRpm(string value, string interpretation)
+        {
+            var agent = Pozos(); const string fans = "1.3.6.1.4.1.232.6.2.6.7.1";
+            agent.Tables[fans][fans + ".6.0.1"] = value;
+            var result = Read(agent);
+            Assert.That(result.RawDetails["FanColumn6Interpretation"], Is.EqualTo(interpretation));
+            Assert.That(result.RawDetails["FanRpmStatus"], Is.EqualTo("not_returned"));
+            Assert.That(result.FanAvgPct, Is.Null);
+            Assert.That(result.RawDetails.ContainsKey("fan_avg_rpm"), Is.False);
+            Assert.That(result.RawDetails["fan_0_1_column6_raw"], Is.EqualTo(double.Parse(value)));
+        }
+
+        [Test] public void UnsupportedOptionalDiagnosticOidsDoNotCreateAnAlarmOrFakeIdentity()
+        {
+            var result = Read(Pozos());
+            Assert.That(result.RawDetails.ContainsKey("ImlHealth"), Is.False);
+            Assert.That(result.RawDetails.ContainsKey("SerialNumber"), Is.False);
+            Assert.That(result.RawDetails.Keys, Has.None.StartsWith("Error_"));
+        }
+
         [Test] public void PozosReplayReadsCorrectFirmwareModelAndBothCpuDescriptions()
         {
             var result = Read(Pozos());

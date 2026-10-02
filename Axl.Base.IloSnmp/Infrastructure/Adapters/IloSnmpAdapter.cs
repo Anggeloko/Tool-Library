@@ -24,9 +24,13 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
         private const string OidHpeIloFirmware = "1.3.6.1.4.1.232.9.2.2.2.0";
         private const string OidHpeSystemRom = "1.3.6.1.4.1.232.1.2.6.1.0";
         private const string OidHpeServerModel = "1.3.6.1.4.1.232.2.2.4.2.0";
+        private const string OidHpeSerial = "1.3.6.1.4.1.232.2.2.2.1.0";
+        private const string OidHpeImlHealth = "1.3.6.1.4.1.232.6.2.11.2.0";
+        private const string OidHpeThermalHealth = "1.3.6.1.4.1.232.6.2.6.1.0";
+        private const string OidHpeFanHealth = "1.3.6.1.4.1.232.6.2.6.4.0";
 
         // --- OIDs CANDIDATOS (CON FALLBACK MULTIMARCA: HPE, DELL, GENERIC) ---
-        // Salud Global: 1) HPE ProLiant cpqHeSysStatus, 2) Dell iDRAC globalSystemStatus, 3) Dell Server Administrator
+        // Salud Global: 1) HPE cpqHeMibCondition, 2) Dell iDRAC globalSystemStatus, 3) Dell Server Administrator
         public static readonly string[] OidCandidatesSysStatus = new[]
         {
             "1.3.6.1.4.1.232.6.1.3.0",
@@ -128,6 +132,12 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 DimmHealth = "Unknown",
                 StorageHealth = "Unknown"
             };
+            metrics.RawDetails["SnmpVersion"] = version.ToString(CultureInfo.InvariantCulture);
+            if (version == 3)
+            {
+                metrics.RawDetails["SnmpAuthProtocol"] = authProto;
+                metrics.RawDetails["SnmpPrivacyProtocol"] = privProto;
+            }
 
             // 1. GET ESCALARES CON FALLBACK (HPE, Dell y MIB-II Universal)
             var scalarOids = new List<string>
@@ -146,6 +156,10 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             scalarOids.AddRange(OidCandidatesDriveHealth);
             scalarOids.AddRange(OidCandidatesFirmware);
             scalarOids.Add(OidHpeServerModel);
+            scalarOids.Add(OidHpeSerial);
+            scalarOids.Add(OidHpeImlHealth);
+            scalarOids.Add(OidHpeThermalHealth);
+            scalarOids.Add(OidHpeFanHealth);
 
             string getErr;
             var reader = new DiagnosticSnmpService(_snmpService, metrics);
@@ -243,6 +257,10 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 ParseIfTable(ifResults, metrics);
             }
 
+            var fanReadFailed = metrics.RawDetails.ContainsKey("Error_Walk_" + fanTable) ||
+                (!isDell && metrics.RawDetails.ContainsKey("Error_Walk_" + TableLegacyFans));
+            metrics.RawDetails["FanRpmStatus"] = metrics.RawDetails.ContainsKey("fan_avg_rpm") ? "available" :
+                fanReadFailed ? "read_error" : fanResults != null && fanResults.Count > 0 ? "not_returned" : "unknown";
             return metrics;
         }
 
@@ -300,6 +318,7 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             {
                 metrics.RawDetails["SysName"] = sysName;
             }
+            CopyScalarDetail(data, metrics, OidSysDescr, "SysDescr");
 
             // 1. Health Rollup con Fallback (1=other, 2=ok, 3=degraded, 4=failed)
             string statusVal = TryGetFirstValid(data, OidCandidatesSysStatus);
@@ -338,7 +357,18 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 CopyScalarDetail(data, metrics, OidHpeIloFirmware, "IloFirmwareVersion");
                 CopyScalarDetail(data, metrics, OidHpeSystemRom, "SystemRomVersion");
                 CopyScalarDetail(data, metrics, OidHpeServerModel, "ServerModel");
+                CopyScalarDetail(data, metrics, OidHpeSerial, "SerialNumber");
+                foreach (var health in new[] { new KeyValuePair<string, string>(OidHpeImlHealth, "ImlHealth"),
+                    new KeyValuePair<string, string>(OidHpeThermalHealth, "ThermalHealth"),
+                    new KeyValuePair<string, string>(OidHpeFanHealth, "FanHealthStatus") })
+                {
+                    var value = TryGetFirstValid(data, health.Key);
+                    if (value != null) metrics.RawDetails[health.Value] = MapStatusToHealth(value, false);
+                }
             }
+            metrics.RawDetails["FirmwareSource"] = TryGetFirstValid(data, isDell ? "1.3.6.1.4.1.674.10892.5.1.1.8.0" : OidHpeIloFirmware) != null ?
+                (isDell ? "bios" : "ilo") : !isDell && TryGetFirstValid(data, OidHpeSystemRom) != null ? "system_rom" :
+                TryGetFirstValid(data, OidSysDescr) != null ? "sys_descr" : "unknown";
         }
 
         private static void CopyScalarDetail(Dictionary<string, string> data, IloMetrics metrics, string oid, string key)
@@ -393,6 +423,8 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             string descPrefix = table + ".8.";
             string valPrefix = table + (isDell ? ".6." : ".4.");
             string localePrefix = table + ".3.";
+            string healthPrefix = table + (isDell ? ".5." : ".6.");
+            double? worst = null;
 
             foreach (var kvp in data)
             {
@@ -414,7 +446,15 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 {
                     locales[kvp.Key.Substring(localePrefix.Length)] = kvp.Value;
                 }
+                else if (kvp.Key.StartsWith(healthPrefix, StringComparison.Ordinal))
+                {
+                    var health = HealthScore(kvp.Value, isDell);
+                    if (!health.HasValue) continue;
+                    metrics.RawDetails["temperature_sensor_" + MetricIndex(kvp.Key.Substring(healthPrefix.Length)) + "_health"] = health.Value;
+                    worst = worst.HasValue ? Math.Min(worst.Value, health.Value) : health;
+                }
             }
+            if (worst.HasValue) metrics.RawDetails["thermal_health"] = worst.Value;
 
             double maxHdTemp = 0;
 
@@ -526,6 +566,27 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             double totalSpeed = 0;
             int count = 0;
             double? worst = null;
+
+            // Retain the disputed .6 column as evidence only. Values 1..3 may
+            // be legacy enums or a low percentage; firmware alone is not proof.
+            if (!isDell && !alternate)
+            {
+                var column6 = new List<double>();
+                foreach (var entry in data)
+                {
+                    var prefix = table + ".6.";
+                    double value;
+                    if (entry.Key.StartsWith(prefix, StringComparison.Ordinal) && double.TryParse(entry.Value,
+                        NumberStyles.Any, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value))
+                    {
+                        column6.Add(value);
+                        metrics.RawDetails["fan_" + MetricIndex(entry.Key.Substring(prefix.Length)) + "_column6_raw"] = value;
+                    }
+                }
+                bool enumsOnly = column6.Count > 0 && column6.TrueForAll(v => v == 1 || v == 2 || v == 3);
+                metrics.RawDetails["FanColumn6Interpretation"] = column6.Count == 0 ? "not_returned" :
+                    enumsOnly ? "state_or_low_percentage" : column6.TrueForAll(v => v >= 0 && v <= 100) ? "percentage_candidate" : "unrecognized";
+            }
 
             foreach (var kvp in data)
             {
