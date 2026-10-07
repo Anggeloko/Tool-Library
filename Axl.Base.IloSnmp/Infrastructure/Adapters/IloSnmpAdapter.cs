@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Axl.Base.Interfaces;
 using Axl.Base.Models;
 using Axl.Base.Snmp.Services;
@@ -567,8 +568,8 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
             int count = 0;
             double? worst = null;
 
-            // Retain the disputed .6 column as evidence only. Values 1..3 may
-            // be legacy enums or a low percentage; firmware alone is not proof.
+            // Preserve .6 evidence. Only the iLO 5 / 3.18 profile compared with
+            // the portal in Vasconia and the lab has a confirmed percentage unit.
             if (!isDell && !alternate)
             {
                 var column6 = new List<double>();
@@ -586,6 +587,32 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 bool enumsOnly = column6.Count > 0 && column6.TrueForAll(v => v == 1 || v == 2 || v == 3);
                 metrics.RawDetails["FanColumn6Interpretation"] = column6.Count == 0 ? "not_returned" :
                     enumsOnly ? "state_or_low_percentage" : column6.TrueForAll(v => v >= 0 && v <= 100) ? "percentage_candidate" : "unrecognized";
+                if (IsConfirmedHpePercentageProfile(metrics))
+                {
+                    double percentTotal = 0;
+                    int percentCount = 0;
+                    foreach (var entry in data)
+                    {
+                        string prefix = table + ".6.";
+                        if (!entry.Key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                        double percent;
+                        if (!double.TryParse(entry.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out percent)
+                            || double.IsNaN(percent) || double.IsInfinity(percent) || percent < 0 || percent > 100)
+                        { metrics.RawDetails["Error_FanPercentage"] = "Fan percentage outside 0..100 or non-numeric"; continue; }
+                        // Existing Base recognizes this suffix as a percentage unit.
+                        metrics.RawDetails["fan_" + MetricIndex(entry.Key.Substring(prefix.Length)) + "_speed_pct"] = percent;
+                        percentTotal += percent;
+                        percentCount++;
+                    }
+                    if (percentCount > 0)
+                    {
+                        metrics.FanAvgPct = Math.Round(percentTotal / percentCount, 2);
+                        // Base already persists FanAvgPct as fan_avg_pct. Do not
+                        // duplicate that key in RawDetails and the same MERGE batch.
+                        metrics.RawDetails["FanColumn6Interpretation"] = "percentage";
+                        metrics.RawDetails["FanPercentageSource"] = "snmp_hpe_ilo5_3.18_column6";
+                    }
+                }
             }
 
             foreach (var kvp in data)
@@ -614,6 +641,21 @@ namespace Axl.Base.IloSnmp.Infrastructure.Adapters
                 metrics.RawDetails["fan_avg_rpm"] = Math.Round(totalSpeed / count, 2);
             }
             if (worst.HasValue && (!alternate || !metrics.RawDetails.ContainsKey("fan_health"))) metrics.RawDetails["fan_health"] = worst.Value;
+        }
+
+        private static bool IsConfirmedHpePercentageProfile(IloMetrics metrics)
+        {
+            object firmware, description, objectId;
+            metrics.RawDetails.TryGetValue("IloFirmwareVersion", out firmware);
+            metrics.RawDetails.TryGetValue("SysDescr", out description);
+            metrics.RawDetails.TryGetValue("SysObjectId", out objectId);
+            // Never infer a universal firmware boundary or use the system ROM version.
+            // A Windows SNMP agent must not inherit the iLO interpretation.
+            var agent = Convert.ToString(description) ?? "";
+            if (Regex.IsMatch(agent, @"Integrated Lights-Out 5\s+3\.18(?:\D|$)", RegexOptions.IgnoreCase)) return true;
+            return string.Equals(Convert.ToString(objectId), "1.3.6.1.4.1.232.9.4.11", StringComparison.Ordinal)
+                && Regex.IsMatch(Convert.ToString(firmware) ?? "", @"^3\.18(?:\D|$)")
+                && (string.IsNullOrEmpty(agent) || agent.IndexOf("Integrated Lights-Out 5", StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         private void ParseDiskTable(Dictionary<string, string> data, IloMetrics metrics, bool isDell)

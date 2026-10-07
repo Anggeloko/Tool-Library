@@ -59,6 +59,58 @@ namespace Axl.Base.Diagnostics.Tests
         private static IloMetrics Read(Agent agent)
         { return new IloSnmpAdapter(agent).GetMetrics("lab-server", "192.0.2.1", version: 3); }
 
+        [Test] public void ConfirmedVasconiaProfilePublishesSixPercentagesAndAverageWithoutInventingRpm()
+        {
+            var agent = Pozos();
+            agent.Scalars[IloVersion] = "3.18";
+            agent.Scalars[IloSnmpAdapter.OidSysDescr] = "Integrated Lights-Out 5 3.18 Feb 08 2026";
+            const string fans = "1.3.6.1.4.1.232.6.2.6.7.1";
+            var values = new[] { 12, 12, 12, 16, 20, 20 };
+            for (int i = 0; i < values.Length; i++) agent.Tables[fans][fans + ".6.0." + (i + 1)] = values[i].ToString();
+            var result = Read(agent);
+            Assert.That(result.FanAvgPct, Is.EqualTo(15.33));
+            Assert.That(result.RawDetails["fan_0_6_speed_pct"], Is.EqualTo(20d));
+            Assert.That(result.RawDetails["fan_0_6_column6_raw"], Is.EqualTo(20d));
+            Assert.That(result.RawDetails.ContainsKey("fan_avg_pct"), Is.False, "Base persists the top-level average once");
+            Assert.That(result.RawDetails["FanPercentageSource"], Is.EqualTo("snmp_hpe_ilo5_3.18_column6"));
+            Assert.That(result.RawDetails["fan_health"], Is.EqualTo(1d));
+            Assert.That(result.RawDetails.ContainsKey("fan_avg_rpm"), Is.False);
+        }
+
+        [TestCase("0", 0d)] [TestCase("2", 2d)] [TestCase("100", 100d)]
+        public void ConfirmedProfilePreservesRealZeroAndLowPercentage(string value, double expected)
+        {
+            var agent = Pozos(); agent.Scalars[IloVersion] = "3.18";
+            const string fans = "1.3.6.1.4.1.232.6.2.6.7.1";
+            agent.Tables[fans][fans + ".6.0.1"] = value;
+            Assert.That(Read(agent).FanAvgPct, Is.EqualTo(expected));
+        }
+
+        [TestCase("2.41", "Integrated Lights-Out 5 2.41")]
+        [TestCase("3.19", "Integrated Lights-Out 5 3.19")]
+        [TestCase("3.18", "Hardware: Intel Windows")]
+        public void UnconfirmedOrOsAgentNeverInheritsPercentageProfile(string version, string description)
+        {
+            var agent = Pozos(); agent.Scalars[IloVersion] = version;
+            agent.Scalars[IloSnmpAdapter.OidSysDescr] = description;
+            const string fans = "1.3.6.1.4.1.232.6.2.6.7.1";
+            agent.Tables[fans][fans + ".6.0.1"] = "12";
+            Assert.That(Read(agent).FanAvgPct, Is.Null);
+        }
+
+        [TestCase("-1")] [TestCase("101")] [TestCase("NaN")] [TestCase("bad")]
+        public void InvalidPercentageDoesNotEnterAverage(string invalid)
+        {
+            var agent = Pozos(); agent.Scalars[IloVersion] = "3.18";
+            const string fans = "1.3.6.1.4.1.232.6.2.6.7.1";
+            agent.Tables[fans][fans + ".6.0.1"] = "12";
+            agent.Tables[fans][fans + ".6.0.2"] = invalid;
+            var result = Read(agent);
+            Assert.That(result.FanAvgPct, Is.EqualTo(12));
+            Assert.That(result.RawDetails.ContainsKey("fan_0_2_speed_pct"), Is.False);
+            Assert.That(result.RawDetails.ContainsKey("Error_FanPercentage"), Is.True);
+        }
+
         [Test] public void DiagnosticsSeparateImlFromComponentHealthAndIdentifyTheResponder()
         {
             var agent = Pozos();
