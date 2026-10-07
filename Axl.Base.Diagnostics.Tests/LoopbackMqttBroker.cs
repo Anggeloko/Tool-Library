@@ -19,9 +19,11 @@ namespace Axl.Base.Diagnostics.Tests
         private readonly List<Publication> _publications = new List<Publication>();
         private readonly Dictionary<string, byte[]> _retained = new Dictionary<string, byte[]>();
         private volatile bool _stopped;
+        private readonly bool _acknowledgePublish;
         public int Port { get; private set; }
-        public LoopbackMqttBroker()
+        public LoopbackMqttBroker(bool acknowledgePublish = true)
         {
+            _acknowledgePublish = acknowledgePublish;
             _listener.Start(); Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
             new Thread(() => {
                 while (!_stopped)
@@ -71,7 +73,7 @@ namespace Axl.Base.Diagnostics.Tests
                             byte id1 = 0, id2 = 0; if (qos > 0) { id1 = body[offset++]; id2 = body[offset++]; }
                             var data = body.Skip(offset).ToArray();
                             lock (_gate) { _publications.Add(new Publication { Topic = topic, Payload = data, Header = (byte)header }); if ((header & 1) != 0) _retained[topic] = data; }
-                            if (qos == 1) Send(stream, 0x40, new[] { id1, id2 });
+                            if (qos == 1 && _acknowledgePublish) Send(stream, 0x40, new[] { id1, id2 });
                         }
                         else if ((header >> 4) == 8)
                         {

@@ -10,6 +10,14 @@ using System.IO.Compression;
 
 namespace Axl.Base.Mqtt.Services
 {
+    public sealed class RawMqttMessage : EventArgs
+    {
+        public string Topic { get; set; }
+        public byte[] Payload { get; set; }
+        public bool Retained { get; set; }
+        public bool Handled { get; set; }
+    }
+
     public class MqttService : IMqttService
     {
         private MqttClient _mqttClient;
@@ -27,6 +35,8 @@ namespace Axl.Base.Mqtt.Services
         private readonly byte _lwtQos;
 
         public event EventHandler<MqttData> DataReceived;
+        // Optional interception before decompression. Existing consumers are unchanged.
+        public event EventHandler<RawMqttMessage> RawMessageReceived;
         public event EventHandler Connected;
         public event EventHandler Disconnected;
 
@@ -130,6 +140,9 @@ namespace Axl.Base.Mqtt.Services
 
         private void OnMessageReceived(object sender, MqttMsgPublishEventArgs e)
         {
+            var raw = new RawMqttMessage { Topic = e.Topic, Payload = e.Message, Retained = e.Retain };
+            RawMessageReceived?.Invoke(this, raw);
+            if (raw.Handled) return;
             byte[] rawPayload = e.Message;
             string payload = string.Empty;
 
@@ -210,31 +223,39 @@ namespace Axl.Base.Mqtt.Services
 
         public bool PublishConfirmed(string topic, string payload, bool compress, int timeoutMs = 2000)
         {
+            return PublishConfirmed(topic, payload, compress, true, timeoutMs);
+        }
+
+        public bool PublishConfirmed(string topic, string payload, bool compress, bool retain, int timeoutMs = 2000)
+        {
             if (!IsConnected) return false;
+            var client = _mqttClient;
             var gate = new object();
             ushort messageId = 0;
             bool disposed = false;
-            var acknowledged = new System.Collections.Generic.HashSet<ushort>();
+            var acknowledged = new System.Collections.Generic.Dictionary<ushort, bool>();
             using (var completed = new System.Threading.ManualResetEvent(false))
             {
                 MqttClient.MqttMsgPublishedEventHandler handler = (sender, args) => {
                     lock (gate)
                     {
                         if (disposed) return;
-                        acknowledged.Add(args.MessageId);
+                        // M2Mqtt 3.4 exposes MessageId only; success is the acknowledged event.
+                        acknowledged[args.MessageId] = true;
                         if (messageId != 0 && args.MessageId == messageId) completed.Set();
                     }
                 };
-                _mqttClient.MqttMsgPublished += handler;
+                client.MqttMsgPublished += handler;
                 try
                 {
                     var message = Encoding.UTF8.GetBytes(payload);
                     if (compress) message = InternalCompress(message);
-                    var id = _mqttClient.Publish(topic, message, MqttMsgBase.QOS_LEVEL_AT_LEAST_ONCE, true);
-                    lock (gate) { messageId = id; if (acknowledged.Contains(id)) completed.Set(); }
-                    return completed.WaitOne(timeoutMs);
+                    var id = client.Publish(topic, message, MqttMsgBase.QOS_LEVEL_AT_LEAST_ONCE, retain);
+                    lock (gate) { messageId = id; if (acknowledged.ContainsKey(id)) completed.Set(); }
+                    if (!completed.WaitOne(timeoutMs)) return false;
+                    lock (gate) { bool success; return acknowledged.TryGetValue(id, out success) && success; }
                 }
-                finally { _mqttClient.MqttMsgPublished -= handler; lock (gate) disposed = true; }
+                finally { client.MqttMsgPublished -= handler; lock (gate) disposed = true; }
             }
         }
 
